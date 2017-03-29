@@ -146,9 +146,15 @@ MaleconBalance = (function () {
 
       rowValues.forEach(function (rowValue) {
         var key = rowValue[account.indexes.key];
-        if (!key || !usersMap[key]) {
+        if (!key) {
           // TODO - handle it - other checks (value, date, etc)
           // Browser.msgBox('Error', 'Row does not contain key.' + JSON.stringify(rowValue), Browser.Buttons.OK);
+          return;
+        }
+
+        if (!usersMap[key]) {
+          // TODO - handle it - other checks (value, date, etc)
+          //Browser.msgBox('Error', 'User key not found: ' + key, Browser.Buttons.OK);
           return;
         }
 
@@ -159,7 +165,7 @@ MaleconBalance = (function () {
     Object.keys(usersMap).forEach(function (key) {
       var user = usersMap[key];
       var spreadsheetName = 'Nº ' + user.number + ' ' + user.name;
-      user.spreadsheetId = MaleconUtils.createSpreadsheet(spreadsheetName, MaleconConfig.ids.userBalancesFolder, MaleconConfig.sheetNames.balance);
+      user.spreadsheetId = MaleconUtils.getOrCreateSpreadsheet(spreadsheetName, MaleconConfig.ids.userBalancesFolder, MaleconConfig.sheetNames.balance);
       fillUserSpreadsheet(user);
     });
   }

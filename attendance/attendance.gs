@@ -1,8 +1,8 @@
 MaleconAttendance = (function () {
 
   function checkAttendanceList(){
-    var startRow = MaleconConfig.positioning.startRow,
-      startCol = MaleconConfig.positioning.startCol;
+    var startRow = MaleconConfig.positioning.attendance.startRow,
+      startCol = MaleconConfig.positioning.attendance.startCol;
 
     var values = MaleconUtils.getValues(MaleconConfig.ids.attendanceStatusSpreadsheet, MaleconConfig.sheetNames.attendance);
     SpreadsheetApp.getActive().getSheets().forEach(function (sheet) {
