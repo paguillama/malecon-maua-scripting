@@ -3,12 +3,14 @@
  * custom menu to the spreadsheet.
  */
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu(MaleconTexts.menu.main)
-    .addItem(MaleconTexts.menu.attendances, 'checkAttendanceList')
+  SpreadsheetApp.getUi()
+    .createMenu(MaleconTexts.menu.main)
+    .addItem(MaleconTexts.menu.attendance, 'checkAttendance')
     .addToUi();
 }
 
-function checkAttendanceList () {
+function checkAttendance () {
+  MaleconAttendance.updateUsers();
+  MaleconAttendance.checkAttendanceTypes();
   MaleconAttendance.checkAttendanceList();
 }
