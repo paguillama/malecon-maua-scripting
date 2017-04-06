@@ -1,6 +1,6 @@
 MaleconTexts = {
   menu: {
-    main: 'Chequear',
-    attendances: 'Asistencias'
+    main: 'Validar',
+    attendance: 'Asistencias'
   }
 };

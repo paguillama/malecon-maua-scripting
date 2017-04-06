@@ -2,13 +2,15 @@ MaleconConfig = {
   ids: {
     userBalancesFolder: '0B-8lg-RJkLm3YmFlRGJSZi1rNm8',
     usersSpreadsheet: '1-PkcLTxb8NCK3ufhLFDRlyaAV6mEv2npioQP1ieDH0Q',
-    attendanceStatusSpreadsheet: '1lAZM_7DSeyRv8qoOrQA0O0WpIh7Sy95d3kKpMZ55pkM',
+    configSpreadsheet: '1lAZM_7DSeyRv8qoOrQA0O0WpIh7Sy95d3kKpMZ55pkM',
     invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg'
   },
   sheetNames: {
     balance: 'Balance',
     users: 'Lista',
-    attendance: 'Estados de asistencias',
+    attendanceStatus: 'Estados de asistencias',
+    attendanceTypes: 'Tipos de asistencias',
+    userAttendance: 'Asistencias de socios',
     invoicesTransactions: 'Comprobantes'
   },
   formatting: {
@@ -16,12 +18,23 @@ MaleconConfig = {
   },
   colors: {
     error: '#f4c7c3',
+    neutral: 'white',
     success: '#b7e1cd'
   },
   positioning: {
     attendance: {
-      startRow: 3,
-      startCol: 3
+      status: {
+        startRow: 2,
+        startCol: 3
+      },
+      types: {
+        startRow: 2,
+        startCol: 2
+      },
+      users: {
+        startRow: 1,
+        startCol: 3
+      }
     }
   },
   accounts: [{

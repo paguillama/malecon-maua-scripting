@@ -24,28 +24,32 @@ MaleconUtils = (function () {
     return file.getId();
   }
 
-  function createValueInListValidation(values, targetRange, requireValue){
+  function createValueInListValidation(values, targetRange){
 
+    // Data validation
     var rangeRule = SpreadsheetApp.newDataValidation()
       .requireValueInList(values)
       .setAllowInvalid(false);
     targetRange.setDataValidation(rangeRule);
 
-    if (requireValue) {
-      targetRange.getValues().forEach(function (row, rowIndex) {
-        row.forEach(function (column, columnIndex) {
+    // Background color
+    var flattenedValues = values.map(function (row) {
+      return row[0];
+    });
+    targetRange.getValues()
+      .forEach(function (row, rowIndex) {
+        row.forEach(function (value, columnIndex) {
+          var color = !value || flattenedValues.indexOf(value) === -1 ? 'error' : 'neutral';
           targetRange.getCell(rowIndex + 1, columnIndex + 1)
-            .setBackground(MaleconConfig.colors[!column ? 'error' : 'success']);
+            .setBackground(MaleconConfig.colors[color]);
         });
       });
     }
-  }
 
   function getValues(sourceSpreadsheetAppId, sourceSheetName) {
     var spreadsheet = SpreadsheetApp.openById(sourceSpreadsheetAppId);
     var sheet = spreadsheet.getSheetByName(sourceSheetName);
     var range = sheet.getRange(1, 1, sheet.getMaxRows(), 1);
-    //Browser.msgBox('range', 'range ' + JSON.stringify(range.getValues()), Browser.Buttons.OK);
     return range.getValues();
   }
 
