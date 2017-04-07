@@ -175,7 +175,7 @@ MaleconInvoiceMigration = (function () {
     var spreadsheet = SpreadsheetApp.openById(MaleconConfig.ids.invoices);
     var sheet = spreadsheet.getSheetByName(MaleconConfig.sheetNames.invoicesTransactions);
 
-    var valuesRange = sheet.getRange(3, 1, transactions.length, 8);
+    var valuesRange = sheet.getRange(2, 1, transactions.length, 8);
     var transactionValues = transactions.map(function (transaction) {
       return [
         transaction.date,
@@ -191,7 +191,7 @@ MaleconInvoiceMigration = (function () {
     valuesRange.setValues(transactionValues);
 
     // Date format
-    sheet.getRange(3, 1, transactions.length, 1)
+    sheet.getRange(2, 1, transactions.length, 1)
       .setNumberFormat(MaleconConfig.formatting.date);
   }
 

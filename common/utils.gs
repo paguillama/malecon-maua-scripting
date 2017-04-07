@@ -46,10 +46,11 @@ MaleconUtils = (function () {
       });
     }
 
-  function getValues(sourceSpreadsheetAppId, sourceSheetName) {
+  function getValues(sourceSpreadsheetAppId, sourceSheetName, options) {
     var spreadsheet = SpreadsheetApp.openById(sourceSpreadsheetAppId);
     var sheet = spreadsheet.getSheetByName(sourceSheetName);
-    var range = sheet.getRange(1, 1, sheet.getMaxRows(), 1);
+    var maxRows = sheet.getMaxRows() - (options && options.startRow ? options.startRow - 1 : 0);
+    var range = sheet.getRange(options && options.startRow || 1, options && options.startCol || 1, maxRows, 1);
     return range.getValues();
   }
 

@@ -3,12 +3,15 @@
  * custom menu to the spreadsheet.
  */
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('Migrar')
-    .addItem('Comprobantes', 'migrateInvoices')
+  SpreadsheetApp.getUi()
+    .createMenu(MaleconTexts.menu.main)
+    .addItem(MaleconTexts.menu.invoice, 'checkInvoice')
     .addToUi();
 }
 
-function migrateInvoices () {
-  MaleconInvoiceMigration.migrate();
+function checkInvoice () {
+  MaleconInvoice.checkCategories();
+  MaleconInvoice.checkUsers();
+  MaleconInvoice.checkAccounts();
+  MaleconInvoice.dataFormat();
 }
