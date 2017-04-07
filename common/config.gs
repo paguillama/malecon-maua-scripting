@@ -11,10 +11,13 @@ MaleconConfig = {
     attendanceStatus: 'Estados de asistencias',
     attendanceTypes: 'Tipos de asistencias',
     userAttendance: 'Asistencias de socios',
-    invoicesTransactions: 'Comprobantes'
+    invoicesTransactions: 'Comprobantes',
+    transactionCategories: 'Categorías de transacciones',
+    accounts: 'Cuentas'
   },
   formatting: {
-    date: 'yyy-mm-dd'
+    date: 'yyy-mm-dd',
+    decimalNumber: '#,##0.00'
   },
   colors: {
     error: '#f4c7c3',
@@ -34,6 +37,28 @@ MaleconConfig = {
       users: {
         startRow: 1,
         startCol: 3
+      }
+    },
+    invoice: {
+      categories: {
+        startRow: 2,
+        startCol: 6
+      },
+      sourceUserKeys: {
+        startRow: 2,
+        startCol: 3
+      },
+      targetUserKeys: {
+        startRow: 2,
+        startCol: 2
+      },
+      accounts: {
+        startRow: 2,
+        startCol: 3
+      },
+      value: {
+        startRow: 2,
+        startCol: 7
       }
     }
   },
