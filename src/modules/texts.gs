@@ -1,9 +1,15 @@
-MaleconTexts = {
-  menu: {
-    main: 'Generar',
-    balance: 'Estados de cuenta de socios'
+Texts = {
+  attendance: {
+    menu: {
+      main: 'Validar',
+      attendance: 'Asistencias'
+    }
   },
   balance: {
+    menu: {
+      main: 'Generar',
+      balance: 'Estados de cuenta de socios'
+    },
     headers: {
       userNumber: 'Socio Nº',
       userDocument: 'C.I.',
@@ -18,6 +24,18 @@ MaleconTexts = {
         balance: 'Saldo'
       },
       noDataMessage: 'No hay transacciones para la cuenta seleccionada'
+    }
+  },
+  invoice: {
+    menu: {
+      main: 'Validar',
+      invoice: 'Recibos'
+    }
+  },
+  invoiceMigration: {
+    menu: {
+      main: 'Migrar',
+      invoice: 'Recibos'
     }
   }
 };

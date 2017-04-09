@@ -1,4 +1,4 @@
-MaleconBalance = (function () {
+Balance = (function () {
 
   function generateUserData() {
 
@@ -19,15 +19,15 @@ MaleconBalance = (function () {
       function createSheet() {
         var spreadsheet = SpreadsheetApp.openById(userData.spreadsheetId);
 
-        sheet = spreadsheet.getSheetByName(MaleconConfig.sheetNames.balance);
+        sheet = spreadsheet.getSheetByName(Config.sheetNames.balance);
         if (sheet) {
           sheet.clear();
           sheet.activate();
         } else {
-          sheet = spreadsheet.insertSheet(MaleconConfig.sheetNames.balance, spreadsheet.getNumSheets());
+          sheet = spreadsheet.insertSheet(Config.sheetNames.balance, spreadsheet.getNumSheets());
         }
         var sheetTitle = userData.name;
-        var headerLabels = MaleconTexts.balance.headers;
+        var headerLabels = Texts.balance.headers;
         var headers = [
           [sheetTitle, '', '', ''],
           [headerLabels.userNumber, userData.number, headerLabels.userDocument, userData.document || '-'],
@@ -45,7 +45,7 @@ MaleconBalance = (function () {
           .setHorizontalAlignment('center');
 
         sheet.getRange(row + 2, 1)
-          .setNumberFormat(MaleconConfig.formatting.date);
+          .setNumberFormat(Config.formatting.date);
 
         row = row + headers.length + 1;
 
@@ -59,7 +59,7 @@ MaleconBalance = (function () {
         var row = position.row,
           col = position.col;
 
-        var transactionLabels = MaleconTexts.balance.transactions;
+        var transactionLabels = Texts.balance.transactions;
         var transactionHeaders = [transactionLabels.headers.date, transactionLabels.headers.invoice, transactionLabels.headers.value];
         var extraHeaders = [transactionLabels.headers.balance];
         var headers = transactionHeaders.concat(extraHeaders);
@@ -99,13 +99,13 @@ MaleconBalance = (function () {
               .setFormulasR1C1(formulas);
 
             sheet.getRange(row, col, transactionValues.length, 1)
-              .setNumberFormat(MaleconConfig.formatting.date);
+              .setNumberFormat(Config.formatting.date);
           }
 
           row = row + transactionValues.length;
         } else {
           sheet.getRange(row, col, 1, 1)
-            .setValues([[MaleconTexts.balance.transactions.noDataMessage]]);
+            .setValues([[Texts.balance.transactions.noDataMessage]]);
           sheet.getRange(row, col, 1, headers.length)
             .mergeAcross()
             .setHorizontalAlignment('center');
@@ -125,7 +125,7 @@ MaleconBalance = (function () {
       var sheet = null;
       var position = createSheet();
 
-      MaleconConfig.accounts.forEach(function (account) {
+      Config.accounts.forEach(function (account) {
         var accountPosition = createTransactions(position, account);
         position = {
           row: position.row,
@@ -136,9 +136,9 @@ MaleconBalance = (function () {
 
     var spreadsheet = SpreadsheetApp.getActive();
 
-    var usersMap = MaleconUsers.getUsersMap();
+    var usersMap = Users.getUsersMap();
 
-    MaleconConfig.accounts.forEach(function (account) {
+    Config.accounts.forEach(function (account) {
       var sheet = spreadsheet.getSheetByName(account.sheetName);
 
       var row = sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns());
@@ -165,7 +165,7 @@ MaleconBalance = (function () {
     Object.keys(usersMap).forEach(function (key) {
       var user = usersMap[key];
       var spreadsheetName = 'Nº ' + user.number + ' ' + user.name;
-      user.spreadsheetId = MaleconUtils.getOrCreateSpreadsheet(spreadsheetName, MaleconConfig.ids.userBalancesFolder, MaleconConfig.sheetNames.balance);
+      user.spreadsheetId = Utils.getOrCreateSpreadsheet(spreadsheetName, Config.ids.userBalancesFolder, Config.sheetNames.balance);
       fillUserSpreadsheet(user);
     });
   }

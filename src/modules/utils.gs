@@ -1,4 +1,4 @@
-MaleconUtils = (function () {
+Utils = (function () {
 
   function getOrCreateSpreadsheet(filename, folderId, sheetName) {
     var folder = DriveApp.getFolderById(folderId);
@@ -41,7 +41,7 @@ MaleconUtils = (function () {
         row.forEach(function (value, columnIndex) {
           var color = !value || flattenedValues.indexOf(value) === -1 ? 'error' : 'neutral';
           targetRange.getCell(rowIndex + 1, columnIndex + 1)
-            .setBackground(MaleconConfig.colors[color]);
+            .setBackground(Config.colors[color]);
         });
       });
     }
@@ -54,10 +54,32 @@ MaleconUtils = (function () {
     return range.getValues();
   }
 
+  function checkEventRangeColumnWithValues(eventRange, positioning, sheetname, handler) {
+    if (eventRange.columnStart <= positioning.startCol &&
+      eventRange.columnEnd >= positioning.startCol &&
+      eventRange.rowEnd >= positioning.startRow) {
+
+      var range = eventRange;
+      if (eventRange.rowStart < positioning.startRow ||
+        eventRange.columnStart < positioning.startCol ||
+        eventRange.columnEnd > positioning.startCol) {
+        var startRow = Math.max(positioning.startRow, eventRange.rowStart);
+        var startCol = positioning.startCol;
+        var rows = eventRange.rowEnd - startRow + 1;
+        var columns = 1;
+        var sheet = SpreadsheetApp.getActive().getSheetByName(sheetname);
+        range = sheet.getRange(startRow, startCol, rows, columns);
+      }
+
+      handler(range);
+    }
+  }
+
   return {
     getOrCreateSpreadsheet: getOrCreateSpreadsheet,
     createValueInListValidation: createValueInListValidation,
-    getValues: getValues
+    getValues: getValues,
+    checkEventRangeColumnWithValues: checkEventRangeColumnWithValues
   };
 
 })();

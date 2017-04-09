@@ -1,4 +1,4 @@
-MaleconInvoiceMigration = (function () {
+InvoiceMigration = (function () {
 
   // TODO - improve
   var accountsCategoriesData = [{
@@ -66,7 +66,7 @@ MaleconInvoiceMigration = (function () {
   }
 
   function checkAndAddUsers(sheetsData) {
-    var usersNameMap = MaleconUsers.getUsersMap();
+    var usersNameMap = Users.getUsersMap();
     var usersNumberMap = Object.keys(usersNameMap).reduce(function (usersNumberMap, userName) {
       var user = usersNameMap[userName];
       usersNumberMap[user.number] = user;
@@ -172,8 +172,8 @@ MaleconInvoiceMigration = (function () {
   }
 
   function createInvoicesSheet(transactions) {
-    var spreadsheet = SpreadsheetApp.openById(MaleconConfig.ids.invoices);
-    var sheet = spreadsheet.getSheetByName(MaleconConfig.sheetNames.invoicesTransactions);
+    var spreadsheet = SpreadsheetApp.openById(Config.ids.invoices);
+    var sheet = spreadsheet.getSheetByName(Config.sheetNames.invoicesTransactions);
 
     var valuesRange = sheet.getRange(2, 1, transactions.length, 8);
     var transactionValues = transactions.map(function (transaction) {
@@ -192,7 +192,7 @@ MaleconInvoiceMigration = (function () {
 
     // Date format
     sheet.getRange(2, 1, transactions.length, 1)
-      .setNumberFormat(MaleconConfig.formatting.date);
+      .setNumberFormat(Config.formatting.date);
   }
 
   return {
