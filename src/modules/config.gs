@@ -1,4 +1,4 @@
-MaleconConfig = {
+Config = {
   ids: {
     userBalancesFolder: '0B-8lg-RJkLm3YmFlRGJSZi1rNm8',
     usersSpreadsheet: '1-PkcLTxb8NCK3ufhLFDRlyaAV6mEv2npioQP1ieDH0Q',

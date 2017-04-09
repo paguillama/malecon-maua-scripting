@@ -1,29 +1,40 @@
-MaleconAttendance = (function () {
+Attendance = (function () {
 
-  function checkAttendanceList(){
-    var startRow = MaleconConfig.positioning.attendance.status.startRow,
-      startCol = MaleconConfig.positioning.attendance.status.startCol;
+  function checkAttendanceList(range){
+    var startRow = Config.positioning.attendance.status.startRow,
+      startCol = Config.positioning.attendance.status.startCol;
 
-    var values = MaleconUtils.getValues(MaleconConfig.ids.configSpreadsheet, MaleconConfig.sheetNames.attendanceStatus);
-    var sheet = SpreadsheetApp.getActive().getSheetByName(MaleconConfig.sheetNames.userAttendance);
-    var range = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, sheet.getMaxColumns() - startCol + 1);
+    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.attendanceStatus);
+    var rangeToValidate;
+    if (range) {
+      rangeToValidate = range;
+    } else {
+      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.userAttendance);
+      rangeToValidate = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, sheet.getMaxColumns() - startCol + 1);
+    }
 
-    MaleconUtils.createValueInListValidation(values, range);
+    Utils.createValueInListValidation(values, rangeToValidate);
   }
 
-  function checkAttendanceTypes(){
-    var startRow = MaleconConfig.positioning.attendance.types.startRow,
-      startCol = MaleconConfig.positioning.attendance.types.startCol;
+  function checkAttendanceTypes(range){
+    var startRow = Config.positioning.attendance.types.startRow,
+      startCol = Config.positioning.attendance.types.startCol;
 
-    var values = MaleconUtils.getValues(MaleconConfig.ids.configSpreadsheet, MaleconConfig.sheetNames.attendanceTypes);
-    var sheet = SpreadsheetApp.getActive().getSheetByName(MaleconConfig.sheetNames.userAttendance);
-    var range = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.attendanceTypes);
 
-    MaleconUtils.createValueInListValidation(values, range);
+    var rangeToValidate;
+    if (range) {
+      rangeToValidate = range;
+    } else {
+      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.userAttendance);
+      rangeToValidate = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+    }
+
+    Utils.createValueInListValidation(values, rangeToValidate);
   }
 
   function updateUsers() {
-    var usersKeyMap = MaleconUsers.getUsersMap();
+    var usersKeyMap = Users.getUsersMap();
     
     var usersData = Object.keys(usersKeyMap).reduce(function (usersData, key) {
       usersData[key] = {
@@ -33,13 +44,13 @@ MaleconAttendance = (function () {
       return usersData;
     }, {});
 
-    var startRow = MaleconConfig.positioning.attendance.users.startRow,
-      startCol = MaleconConfig.positioning.attendance.users.startCol,
-      sheet = SpreadsheetApp.getActive().getSheetByName(MaleconConfig.sheetNames.userAttendance),
+    var startRow = Config.positioning.attendance.users.startRow,
+      startCol = Config.positioning.attendance.users.startCol,
+      sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.userAttendance),
       attendanceRows = [],
       rangeRows = sheet.getMaxRows() - startRow + 1;
 
-    if (MaleconConfig.positioning.attendance.users.startCol <= sheet.getMaxColumns()) {
+    if (Config.positioning.attendance.users.startCol <= sheet.getMaxColumns()) {
       var range = sheet.getRange(startRow, startCol, rangeRows, sheet.getMaxColumns() - startCol + 1);
 
       var rangeValues = range.getValues();
@@ -104,7 +115,7 @@ MaleconAttendance = (function () {
     usersArray.forEach(function (user, index) {
       var targetRange = sheet.getRange(startRow, startCol + index);
       var color = !user.user ? 'error' : 'neutral';
-      targetRange.setBackground(MaleconConfig.colors[color]);
+      targetRange.setBackground(Config.colors[color]);
     });
   }
 

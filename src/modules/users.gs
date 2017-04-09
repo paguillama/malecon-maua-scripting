@@ -1,8 +1,8 @@
-MaleconUsers = (function () {
+Users = (function () {
 
   function getUsersMap() {
-    var spreadsheet = SpreadsheetApp.openById(MaleconConfig.ids.usersSpreadsheet);
-    var sheet = spreadsheet.getSheetByName(MaleconConfig.sheetNames.users);
+    var spreadsheet = SpreadsheetApp.openById(Config.ids.usersSpreadsheet);
+    var sheet = spreadsheet.getSheetByName(Config.sheetNames.users);
 
     var row = sheet.getRange(2, 1, sheet.getMaxRows(), sheet.getMaxColumns());
     var rowValues = row.getValues();
@@ -26,7 +26,7 @@ MaleconUsers = (function () {
   }
 
   function createUserTransactions () {
-    return MaleconConfig.accounts.reduce(function (transactions, account) {
+    return Config.accounts.reduce(function (transactions, account) {
       transactions[account.sheetName] = [];
       return transactions;
     }, {});
