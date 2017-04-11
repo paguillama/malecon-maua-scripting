@@ -38,7 +38,10 @@ Invoice = (function () {
   }
 
   function checkAccounts(range) {
-    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.accounts);
+    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.accounts, {
+      startRow: Config.positioning.accounts.keys.startRow,
+      startCol: Config.positioning.accounts.keys.startCol
+    });
 
     var startRow = Config.positioning.invoice.accounts.startRow,
       startCol = Config.positioning.invoice.accounts.startCol;

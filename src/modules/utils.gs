@@ -49,9 +49,29 @@ Utils = (function () {
   function getValues(sourceSpreadsheetAppId, sourceSheetName, options) {
     var spreadsheet = SpreadsheetApp.openById(sourceSpreadsheetAppId);
     var sheet = spreadsheet.getSheetByName(sourceSheetName);
-    var maxRows = sheet.getMaxRows() - (options && options.startRow ? options.startRow - 1 : 0);
-    var range = sheet.getRange(options && options.startRow || 1, options && options.startCol || 1, maxRows, 1);
+    var rows = sheet.getMaxRows() - (options && options.startRow ? options.startRow - 1 : 0);
+    var range = sheet.getRange(options && options.startRow || 1, options && options.startCol || 1, rows, 1);
     return range.getValues();
+  }
+
+  function getObject(sourceSheetName) {
+    var spreadsheet = SpreadsheetApp.openById(Config.ids.configSpreadsheet);
+    var sheet = spreadsheet.getSheetByName(sourceSheetName);
+    var range = sheet.getRange(1, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
+
+    if (range.length < 2) {
+      return [];
+    }
+
+    var values = range.getValues();
+    var indexProperties = values[0];
+
+    return values.slice(1).map(function (row) {
+      return indexProperties.reduce(function (item, propertyName, index) {
+        item[propertyName] = row[index];
+        return item;
+      }, {});
+    });
   }
 
   function checkEventRangeColumnWithValues(eventRange, positioning, sheetname, handler) {
@@ -79,6 +99,7 @@ Utils = (function () {
     getOrCreateSpreadsheet: getOrCreateSpreadsheet,
     createValueInListValidation: createValueInListValidation,
     getValues: getValues,
+    getObject: getObject,
     checkEventRangeColumnWithValues: checkEventRangeColumnWithValues
   };
 
