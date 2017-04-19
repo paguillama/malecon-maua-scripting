@@ -18,7 +18,7 @@ Reconciliation = (function () {
 
     var invoices = getInvoices();
 
-    reconcileTransactions(transactions, invoices);
+    reconcileTransactions(transactions, invoices, accounts);
   }
 
   function getAccountTransactions(account, accountsSpreadsheet) {
@@ -54,9 +54,9 @@ Reconciliation = (function () {
       invalidRows: []
     });
 
-    range.setBackground(Config.colors.neutral);
     transactionsData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, 1, 1, sheet.getMaxColumns())
+      sheet.getRange(rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
+        .setValues([['Sin conciliar']])
         .setBackground(Config.colors.error);
     });
 
@@ -77,9 +77,9 @@ Reconciliation = (function () {
     var numberIndex = 3;
     var seriesIndex = 4;
     var categoryIndex = 5;
-    var valueIndex = 6;
+    var valueIndex = 7;
 
-    var transactionsData = values.reduce(function (transactionsData, row, rowIndex) {
+    var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&
         row[userIndex] &&
         row[accountIndex] &&
@@ -87,7 +87,7 @@ Reconciliation = (function () {
         row[categoryIndex] &&
         row[valueIndex]) {
 
-        transactionsData.transactions.push({
+        invoiceData.invoices.push({
           date: row[dateIndex],
           user: row[userIndex],
           account: row[accountIndex],
@@ -100,25 +100,26 @@ Reconciliation = (function () {
         });
 
       } else {
-        transactionsData.invalidRows.push(rowIndex + startRow);
+        invoiceData.invalidRows.push(rowIndex + startRow);
       }
 
-      return transactionsData;
+      return invoiceData;
     }, {
-      transactions: [],
+      invoices: [],
       invalidRows: []
     });
 
     range.setBackground(Config.colors.neutral);
-    transactionsData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, 1, 1, sheet.getMaxColumns())
+    invoiceData.invalidRows.forEach(function (rowIndex) {
+      sheet.getRange(rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+        .setValues([['Sin conciliar']])
         .setBackground(Config.colors.error);
     });
 
-    return transactionsData.transactions;
+    return invoiceData.invoices;
   }
 
-  function reconcileTransactions(transactions, invoices) {
+  function reconcileTransactions(transactions, invoices, accounts) {
     var usersMap = Users.getUsers().reduce(function(userMap, user) {
       userMap[user.key] = {
         userData: user,
@@ -129,10 +130,10 @@ Reconciliation = (function () {
 
     var invoicesSheet = SpreadsheetApp.openById(Config.ids.invoices)
       .getSheetByName(Config.sheetNames.invoicesTransactions);
+    var accountsBalanceSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
 
     invoices.forEach(function (invoice) {
-      var invoiceRange = invoicesSheet.getRange(invoice.rowIndex, 1, 1, invoicesSheet.getMaxColumns());
-      var matchCell = invoiceRange.getCell(1, Config.positioning.invoice.match.startCol);
+      var matchCell = invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1);
 
       var accountTransactions = transactions[invoice.account];
       if (!accountTransactions) {
@@ -152,42 +153,60 @@ Reconciliation = (function () {
       if (transaction) {
         transaction.invoices.push(invoice);
 
-        var error = getInvoiceError(transaction, invoice);
-        if (!error) {
-          matchCell.setValues([['Conciliado']])
-            .setBackground(Config.colors.neutral);
-
-          if (transaction.invoices.length === 1) {
-            user.transactions.push(transaction);
-          }
-        } else {
-          matchCell.setValues([[error]])
-            .setBackground(Config.colors.error);
+        if (transaction.invoices.length === 1) {
+          user.transactions.push(transaction);
         }
-
       } else {
         matchCell.setValues([['Sin conciliar']])
           .setBackground(Config.colors.error);
       }
       
     });
-  }
 
-  function getInvoiceError(transaction, invoice) {
-    var invoiceSum = transaction.invoices.reduce(function (value, invoice) {
-      return value + invoice.value;
-    }, 0);
+    accounts.forEach(function (account) {
+      var accountSheet = accountsBalanceSpreadsheet.getSheetByName(account.sheetName);
 
-    if (invoiceSum > transaction.value) {
-      Logger.log('transaction' + JSON.stringify(transaction));
-      Logger.log('invoice' + JSON.stringify(invoice));
-      return 'El valor de los recibos excede el de la transacción bancaria';
-    }
+      var accountTransactions = transactions[account.key];
+      Object.keys(accountTransactions)
+        .forEach(function (transactionKey) {
+          var transaction = accountTransactions[transactionKey];
+          var invoiceData = transaction.invoices.reduce(function (invoiceData, invoice) {
+            invoiceData.sum += invoice.value;
 
-    var lastUser = (transaction.invoices[0] || {}).user;
-    if (lastUser && invoice.user !== lastUser) {
-      return 'El usuario no coincide con el del recibo anterior (' + lastUser + ')';
-    }
+            if (invoiceData.users.indexOf(invoice.user) === -1) {
+              invoiceData.users.push(invoice.user);
+            }
+
+            return invoiceData;
+          }, {
+            sum: 0,
+            users: []
+          });
+
+          var message = 'Conciliado';
+          var color = Config.colors.neutral;
+          if (transaction.invoices.length === 0) {
+            message = 'Sin conciliar';
+            color = Config.colors.error;
+          } else if (invoiceData.users.length > 1) {
+            message = 'Múltiples socios para una misma transacción: ' + transaction.users.join(', ');
+            color = Config.colors.error;
+          } else if (transaction.value !== invoiceData.sum) {
+            message = 'Valor no coincide';
+            color = Config.colors.error;
+          }
+
+          accountSheet.getRange(transaction.rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
+            .setValues([[message]])
+            .setBackground(color);
+          transaction.invoices.forEach(function (invoice) {
+            var matchCell = invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1);
+            matchCell.setValues([[message]])
+              .setBackground(color);
+          });
+        });
+    });
+
   }
 
   return {

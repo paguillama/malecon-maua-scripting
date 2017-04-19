@@ -66,6 +66,20 @@ Config = {
         startCol: 10
       }
     },
+    balance: {
+      BHU: {
+        match: {
+          startRow: 2,
+          startCol: 9
+        }
+      },
+      BROU: {
+        match: {
+          startRow: 2,
+          startCol: 10
+        }
+      }
+    },
     accounts: {
       keys: {
         startRow: 2,
