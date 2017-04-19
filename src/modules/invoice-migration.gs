@@ -5,20 +5,23 @@ InvoiceMigration = (function () {
     accountKey: 'BHU',
     categoryKey: 'Ahorro previo',
     cellToCheck: [10, 3],
-    skipOther: true,
-    invoiceSeries: true
+    seriesColumn: 2,
+    valueColumn: 3,
+    amountColumn: 3
   }, {
     accountKey: 'BROU',
     categoryKey: 'Sobreahorro',
     cellToCheck: [10, 9],
-    skipOther: false,
-    invoiceSeries: false
+    seriesColumn: null,
+    valueColumn: 2,
+    amountColumn: 3
   }, {
     accountKey: 'BROU',
     categoryKey: 'Cuota social',
     cellToCheck: [10, 14],
-    skipOther: false,
-    invoiceSeries: false
+    seriesColumn: null,
+    valueColumn: 3,
+    amountColumn: 3
   }];
 
   function migrate () {
@@ -66,21 +69,25 @@ InvoiceMigration = (function () {
   }
 
   function checkAndAddUsers(sheetsData) {
-    var usersNameMap = Users.getUsersMap();
-    var usersNumberMap = Object.keys(usersNameMap).reduce(function (usersNumberMap, userName) {
-      var user = usersNameMap[userName];
-      usersNumberMap[user.number] = user;
-      return usersNameMap;
-    }, {});
+    var userKeyMap = Users.getUsersMap();
+    var userMap = Object.keys(userKeyMap).reduce(function (userMap, userKey) {
+      var user = userKeyMap[userKey];
+      userMap.numbers[user.number] = user;
+      userMap.names[user.name] = user;
+      return userMap;
+    }, {
+      names: {},
+      numbers: {}
+    });
 
 
     sheetsData.forEach(function(sheetData) {
-      var user = usersNameMap[sheetData.parsedName];
+      var user = userMap.names[sheetData.parsedName];
       if (!user && sheetData.parsedNumber) {
-        user = usersNumberMap[sheetData.parsedNumber];
+        user = userMap.numbers[sheetData.parsedNumber];
         if (user) {
           Browser.msgBox('Error', 'User name does not match: ' + user.name + ' ' + sheetData.parsedName + ' ' + (user.name === sheetData.parsedName), Browser.Buttons.OK);
-          user = usersNumberMap[sheetData.parsedNumber];
+          user = userMap.numbers[sheetData.parsedNumber];
         }
       }
 
@@ -132,18 +139,17 @@ InvoiceMigration = (function () {
     var sheet = sheetData.sheet;
 
     var maxRows = sheet.getMaxRows();
-    var invoiceSeriesShift = accountCategoryData.invoiceSeries ? 1 : 0;
-    var columns = 4 + invoiceSeriesShift;
+    var columns = 4 + (accountCategoryData.seriesColumn ? 1 : 0);
     var range = sheet.getRange(accountCategoryData.cellToCheck[0] + 1, accountCategoryData.cellToCheck[1], maxRows, columns);
 
     range.getValues().forEach(function (row) {
-      if (validateRow(row, invoiceSeriesShift, sheetData)) {
+      if (validateRow(row, accountCategoryData, sheetData)) {
         sheetData.transactions.push({
           date: parseInt(row[0], 10),
           invoiceNumber: row[1],
-          invoiceSeries: accountCategoryData.invoiceSeries ? row[2] : null,
-          otherField: accountCategoryData.skipOther ? null : row[2 + invoiceSeriesShift],
-          value: row[3 + invoiceSeriesShift],
+          invoiceSeries: accountCategoryData.seriesColumn ? row[accountCategoryData.seriesColumn] : null,
+          amount: row[accountCategoryData.amountColumn],
+          value: row[accountCategoryData.valueColumn],
           accountCategoryData: accountCategoryData,
           sheetData: sheetData
         });
@@ -151,9 +157,9 @@ InvoiceMigration = (function () {
     });
   }
 
-  function validateRow(row, invoiceSeriesShift, sheetData) {
+  function validateRow(row, accountCategoryData, sheetData) {
     // TODO - improve
-    var valid = row[0] && !isNaN(parseInt(row[0], 10)) && row[3 + invoiceSeriesShift];
+    var valid = row[0] && !isNaN(parseInt(row[0], 10)) && row[accountCategoryData.valueColumn];
     if (row[0] && !valid) {
       Browser.msgBox('Error', 'Transaction not valid: ' + sheetData.user.name + ' ' + JSON.stringify(row), Browser.Buttons.OK);
     }
@@ -179,13 +185,13 @@ InvoiceMigration = (function () {
     var transactionValues = transactions.map(function (transaction) {
       return [
         transaction.date,
-        transaction.sheetData.user.name,
+        transaction.sheetData.user.key,
         transaction.accountCategoryData.accountKey,
         transaction.invoiceNumber,
         transaction.invoiceSeries,
         transaction.accountCategoryData.categoryKey,
         transaction.value,
-        transaction.otherField
+        transaction.amount
       ];
     });
     valuesRange.setValues(transactionValues);
