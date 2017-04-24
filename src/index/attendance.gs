@@ -1,8 +1,19 @@
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu(malecon.Texts.attendance.menu.main)
-    .addItem(malecon.Texts.attendance.menu.attendance, 'checkAttendance')
-    .addToUi();
+  addMenuEntries();
+}
+
+function addMenuEntries() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var menu_entries = [
+    { name: malecon.Texts.attendance.menu.attendance, functionName: 'checkAttendance' },
+    null,
+    { name: 'Test', functionName: 'test' }
+  ]
+  ss.addMenu(malecon.Texts.attendance.menu.main, menu_entries);
+}
+
+function test() {
+  Logger.log('Test ok');
 }
 
 function onEdit(event) {
@@ -40,7 +51,7 @@ function checkTypeRange(eventRange) {
     malecon.Attendance.checkAttendanceTypes);
 }
 
-function checkAttendance () {
+function checkAttendance() {
   malecon.Attendance.updateUsers();
   malecon.Attendance.checkAttendanceTypes();
   malecon.Attendance.checkAttendanceList();
