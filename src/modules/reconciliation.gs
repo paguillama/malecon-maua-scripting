@@ -18,7 +18,9 @@ Reconciliation = (function () {
 
     var invoices = getInvoices();
 
-    reconcileTransactions(transactions, invoices, accounts);
+    var usersMap = reconcileTransactions(transactions, invoices, accounts);
+
+    createUsersSpreadsheets(usersMap);
   }
 
   function getAccountTransactions(account, accountsSpreadsheet) {
@@ -77,7 +79,8 @@ Reconciliation = (function () {
     var numberIndex = 3;
     var seriesIndex = 4;
     var categoryIndex = 5;
-    var valueIndex = 7;
+    var valueIndex = 6;
+    var amountIndex = 7;
 
     var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&
@@ -95,8 +98,8 @@ Reconciliation = (function () {
           series: row[seriesIndex],
           category: row[categoryIndex],
           value: row[valueIndex],
-          rowIndex: rowIndex + startRow,
-          match: false
+          amount: row[amountIndex],
+          rowIndex: rowIndex + startRow
         });
 
       } else {
@@ -120,45 +123,50 @@ Reconciliation = (function () {
   }
 
   function reconcileTransactions(transactions, invoices, accounts) {
-    var usersMap = Users.getUsers().reduce(function(userMap, user) {
-      userMap[user.key] = {
+    var usersMap = Users.getUsers().reduce(function(usersMap, user) {
+      usersMap[user.key] = {
         userData: user,
-        transactions: []
+        transactions: [],
+        errorInvoices: []
       };
-      return userMap;
+      return usersMap;
     }, {});
 
     var invoicesSheet = SpreadsheetApp.openById(Config.ids.invoices)
       .getSheetByName(Config.sheetNames.invoicesTransactions);
     var accountsBalanceSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
 
-    invoices.forEach(function (invoice) {
-      var matchCell = invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1);
+    function addError(message, invoice, user) {
+      invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+        .setValues([[message]])
+        .setBackground(Config.colors.error);
 
-      var accountTransactions = transactions[invoice.account];
-      if (!accountTransactions) {
-        matchCell.setValues([['La cuenta no coincide con las cuentas preexistentes']])
-          .setBackground(Config.colors.error);
-        return;
+      if (user) {
+        user.errorInvoices.push(invoice);
       }
+    }
+
+    invoices.forEach(function (invoice) {
 
       var user = usersMap[invoice.user];
       if (!user) {
-        matchCell.setValues([['El usuario no coincide con los usuarios preexistentes']])
-          .setBackground(Config.colors.error);
-        return;
+        return addError('Socio desconocido', invoice);
+      }
+
+      var accountTransactions = transactions[invoice.account];
+      if (!accountTransactions) {
+        return addError('Cuenta desconocida', invoice, user);
       }
 
       var transaction = accountTransactions[invoice.number];
-      if (transaction) {
-        transaction.invoices.push(invoice);
+      if (!transaction) {
+        return addError('Sin conciliar', invoice, user);
+      }
 
-        if (transaction.invoices.length === 1) {
-          user.transactions.push(transaction);
-        }
-      } else {
-        matchCell.setValues([['Sin conciliar']])
-          .setBackground(Config.colors.error);
+      transaction.invoices.push(invoice);
+
+      if (transaction.invoices.length === 1) {
+        user.transactions.push(transaction);
       }
       
     });
@@ -171,7 +179,7 @@ Reconciliation = (function () {
         .forEach(function (transactionKey) {
           var transaction = accountTransactions[transactionKey];
           var invoiceData = transaction.invoices.reduce(function (invoiceData, invoice) {
-            invoiceData.sum += invoice.value;
+            invoiceData.sum += invoice.amount;
 
             if (invoiceData.users.indexOf(invoice.user) === -1) {
               invoiceData.users.push(invoice.user);
@@ -184,29 +192,185 @@ Reconciliation = (function () {
           });
 
           var message = 'Conciliado';
-          var color = Config.colors.neutral;
+          transaction.reconciled = true;
           if (transaction.invoices.length === 0) {
             message = 'Sin conciliar';
-            color = Config.colors.error;
+            transaction.reconciled = false;
           } else if (invoiceData.users.length > 1) {
             message = 'Múltiples socios para una misma transacción: ' + transaction.users.join(', ');
-            color = Config.colors.error;
+            transaction.reconciled = false;
           } else if (transaction.value !== invoiceData.sum) {
             message = 'Valor no coincide';
-            color = Config.colors.error;
+            transaction.reconciled = false;
           }
 
+          var color = transaction.reconciled ? Config.colors.neutral : Config.colors.error;
           accountSheet.getRange(transaction.rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
             .setValues([[message]])
             .setBackground(color);
           transaction.invoices.forEach(function (invoice) {
-            var matchCell = invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1);
-            matchCell.setValues([[message]])
+            invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+              .setValues([[message]])
               .setBackground(color);
           });
         });
     });
 
+    return usersMap;
+  }
+
+  function createUsersSpreadsheets(usersMap) {
+
+    Object.keys(usersMap).forEach(function (key) {
+      var user = usersMap[key];
+      var spreadsheetName = 'Nº ' + user.userData.number + ' ' + user.userData.name;
+      var spreadsheetId = Utils.getOrCreateSpreadsheet(spreadsheetName, Config.ids.userBalancesFolder, Config.sheetNames.balance);
+      setUserSpreadsheetData(user, spreadsheetId);
+    });
+
+    function setUserSpreadsheetData(user, spreadsheetId) {
+      var accountCategoryMap = user.transactions.reduce(function (accountCategoryMap, transaction) {
+        if (transaction.reconciled) {
+          transaction.invoices.forEach(function (invoice) {
+            var accountCategories = accountCategoryMap[invoice.account];
+            if (!accountCategories) {
+              accountCategories = accountCategoryMap[invoice.account] = {};
+            }
+
+            var categoryInvoices = accountCategories[invoice.category];
+            if (!categoryInvoices) {
+              categoryInvoices = accountCategories[invoice.category] = [];
+            }
+
+            categoryInvoices.push(invoice);
+          });
+        }
+        return accountCategoryMap;
+      }, {});
+
+      var position = createSheet(user, spreadsheetId);
+      Object.keys(accountCategoryMap)
+        .forEach(function (accountKey) {
+          var accountCategories = accountCategoryMap[accountKey];
+          Object.keys(accountCategories)
+            .forEach(function (categoryKey) {
+              var categoryInvoices = accountCategories[categoryKey];
+
+              var tablePosition = createTable(position, accountKey, categoryKey, categoryInvoices);
+              position = {
+                row: position.row,
+                col: tablePosition.col + 1,
+                sheet: position.sheet
+              }
+            });
+        });
+    }
+
+    function createSheet(user, spreadsheetId) {
+      var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+
+      var sheet = spreadsheet.getSheetByName(Config.sheetNames.balance);
+      if (sheet) {
+        sheet.clear();
+        sheet.activate();
+      } else {
+        sheet = spreadsheet.insertSheet(Config.sheetNames.balance, spreadsheet.getNumSheets());
+      }
+      var sheetTitle = user.userData.name;
+      var headerLabels = Texts.balance.headers;
+      var headers = [
+        [sheetTitle, '', '', ''],
+        [headerLabels.userNumber, user.userData.number, headerLabels.userDocument, user.userData.document || '-'],
+        // TODO - bug with start date (substracting 1 day [probably timezone])
+        [headerLabels.admissionDate, user.userData.startDate, headerLabels.phone, user.userData.phone || '-']
+      ];
+
+      var row = 1;
+      sheet.getRange(row, 1, headers.length, 4)
+        .setValues(headers)
+        .setBorder(true, true, true, true, true, true);
+
+      sheet.getRange(row, 1, 1, headers[0].length)
+        .mergeAcross()
+        .setHorizontalAlignment('center');
+
+      sheet.getRange(row + 2, 1)
+        .setNumberFormat(Config.formatting.date);
+
+      row = row + headers.length + 1;
+
+      return {
+        row: row,
+        col: 1,
+        sheet: sheet
+      };
+    }
+
+    function createTable(position, accountKey, categoryKey, categoryInvoices) {
+      var row = position.row,
+        col = position.col;
+
+      var headerLabels = Texts.balance.transactions.headers;
+      var transactionHeaders = [headerLabels.date, headerLabels.invoice, headerLabels.amount, headerLabels.value];
+      var extraHeaders = [headerLabels.balance];
+      var headers = transactionHeaders.concat(extraHeaders);
+
+      var sheet = position.sheet;
+
+      sheet.getRange(row, col, 1, 1)
+        .setValues([[accountKey + ' ' + categoryKey]]);
+      sheet.getRange(row, col, 1, headers.length)
+        .mergeAcross()
+        .setHorizontalAlignment('center');
+      row = row + 1;
+
+      sheet.getRange(row, col, 1, headers.length)
+        .setValues([headers]);
+      row = row + 1;
+
+      var transactionValues = categoryInvoices.map(function (transaction) {
+        return [
+          transaction.date,
+          transaction.number,
+          transaction.amount,
+          transaction.value
+        ];
+      });
+      sheet.getRange(row, col, transactionValues.length, transactionHeaders.length)
+        .setValues(transactionValues);
+
+      sheet.getRange(row, col + transactionHeaders.length)
+        .setFormulasR1C1([['=R[0]C[-1]']]);
+
+      if (transactionValues.length > 1) {
+        var formulas = transactionValues.slice(1).map(function () {
+          return ['=R[-1]C[0] + R[0]C[-1]'];
+        });
+        sheet.getRange(row + 1, col + transactionHeaders.length, transactionValues.length - 1, 1)
+          .setFormulasR1C1(formulas);
+      }
+
+      sheet.getRange(row, col, transactionValues.length, 1)
+        .setNumberFormat(Config.formatting.date);
+
+      sheet.getRange(row, col + 1, transactionValues.length, 1)
+        .setNumberFormat('0');
+
+      sheet.getRange(row, col + 2, transactionValues.length, 3)
+        .setNumberFormat(Config.formatting.decimalNumber);
+
+      row = row + transactionValues.length;
+
+      col = col + headers.length;
+      sheet.getRange(position.row, position.col, row - position.row, col - position.col)
+        .setBorder(true, true, true, true, true, true);
+
+      return {
+        row: row,
+        col: col,
+        sheet: position.sheet
+      }
+    }
   }
 
   return {
