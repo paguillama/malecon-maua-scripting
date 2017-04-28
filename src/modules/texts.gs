@@ -1,14 +1,14 @@
 Texts = {
   attendance: {
     menu: {
-      main: 'Validar',
-      attendance: 'Asistencias'
+      main: 'Malecón',
+      validate: 'Validar'
     }
   },
   balance: {
     menu: {
-      main: 'Generar',
-      balance: 'Estados de cuenta de socios'
+      main: 'Malecón',
+      reconcile: 'Reconciliar'
     },
     headers: {
       userNumber: 'Socio Nº',
@@ -21,21 +21,22 @@ Texts = {
         date: 'Fecha',
         invoice: 'Recibo',
         value: 'Valor',
-        balance: 'Saldo'
+        balance: 'Saldo',
+        amount: 'Monto'
       },
       noDataMessage: 'No hay transacciones para la cuenta seleccionada'
     }
   },
   invoice: {
     menu: {
-      main: 'Validar',
-      invoice: 'Recibos'
+      main: 'Malecón',
+      validate: 'Validar'
     }
   },
   invoiceMigration: {
     menu: {
-      main: 'Migrar',
-      invoice: 'Recibos'
+      main: 'Malecón',
+      migrate: 'Migrar'
     }
   }
 };

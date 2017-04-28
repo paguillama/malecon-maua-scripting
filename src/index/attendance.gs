@@ -1,7 +1,7 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu(malecon.Texts.attendance.menu.main)
-    .addItem(malecon.Texts.attendance.menu.attendance, 'checkAttendance')
+    .addItem(malecon.Texts.attendance.menu.validate, 'checkAttendance')
     .addToUi();
 }
 

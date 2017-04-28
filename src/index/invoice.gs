@@ -1,7 +1,7 @@
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu(malecon.Texts.invoice.menu.main)
-    .addItem(malecon.Texts.invoice.menu.invoice, 'checkInvoice')
+    .addItem(malecon.Texts.invoice.menu.validate, 'checkInvoice')
     .addToUi();
 }
 
