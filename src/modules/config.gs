@@ -43,14 +43,7 @@ Config = {
     invoice: {
       startRow: 2,
       categoriesColumnLabel: 'Categoría',
-      sourceUserKeys: {
-        startRow: 2,
-        startCol: 3
-      },
-      targetUserKeys: {
-        startRow: 2,
-        startCol: 2
-      },
+      userColumnLabel: 'Socio',
       accounts: {
         startRow: 2,
         startCol: 3
@@ -83,6 +76,10 @@ Config = {
         startRow: 2,
         startCol: 1
       }
+    },
+    users: {
+      startRow: 2,
+      keyColumnLabel: 'Key'
     }
   },
   accounts: [{

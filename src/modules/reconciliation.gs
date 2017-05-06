@@ -74,11 +74,11 @@ Reconciliation = (function () {
 
     // TODO - move
     var dateIndex = 0;
-    var userIndex = 1;
+    var userIndex = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, startRow).startCol;
     var accountIndex = 2;
     var numberIndex = 3;
     var seriesIndex = 4;
-    var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow) - 1;
+    var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow).startCol - 1;
     var valueIndex = 6;
     var amountIndex = 7;
 

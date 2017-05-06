@@ -6,10 +6,14 @@ function onOpen() {
 }
 
 function onEdit(event) {
-  checkCategories(event.range);
-  checkUsers(event.range);
-  checkAccounts(event.range);
-  dataFormat(event.range);
+  try {
+    checkCategories(event.range);
+    checkUsers(event.range);
+    checkAccounts(event.range);
+    dataFormat(event.range);
+  } catch(e) {
+    Browser.msgBox('Error', 'Error: ' + JSON.stringify(e), Browser.Buttons.OK);
+  }
 }
 
 function checkCategories(eventRange) {
@@ -21,8 +25,9 @@ function checkCategories(eventRange) {
 }
 
 function checkUsers(eventRange) {
+  var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.userColumnLabel, malecon.Config.positioning.invoice.startRow);
   malecon.Utils.checkEventRangeColumnWithValues(eventRange,
-    malecon.Config.positioning.invoice.targetUserKeys,
+    position,
     malecon.Config.sheetNames.invoicesTransactions,
     malecon.Invoice.checkUsers);
 }

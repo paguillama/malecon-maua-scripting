@@ -16,20 +16,18 @@ Invoice = (function () {
   }
 
   function checkUsers(range) {
-    var values = Utils.getValues(Config.ids.usersSpreadsheet, Config.sheetNames.users, {
-      startRow: Config.positioning.invoice.sourceUserKeys.startRow,
-      startCol: Config.positioning.invoice.sourceUserKeys.startCol
-    });
-
-    var startRow = Config.positioning.invoice.targetUserKeys.startRow,
-      startCol = Config.positioning.invoice.targetUserKeys.startCol;
+    var sheet = SpreadsheetApp.openById(Config.ids.usersSpreadsheet)
+      .getSheetByName(Config.sheetNames.users);
+    var position = Utils.getPosition(sheet, Config.positioning.users.keyColumnLabel, Config.positioning.users.startRow);
+    var values = Utils.getValues(Config.ids.usersSpreadsheet, Config.sheetNames.users, position);
 
     var rangeToValidate;
     if (range) {
       rangeToValidate = range;
     } else {
       var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
-      rangeToValidate = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, Config.positioning.invoice.startRow);
+      rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
 
     Utils.createValueInListValidation(values, rangeToValidate);

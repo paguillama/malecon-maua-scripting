@@ -63,7 +63,7 @@ Utils = (function () {
     }, null);
 
     if (columnIndex === null) {
-      throw new Error('Columna ' + label + ' no encontrada.');
+      throw 'Columna "' + label + '" no encontrada.';
     }
 
     return {
