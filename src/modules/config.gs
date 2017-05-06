@@ -44,10 +44,7 @@ Config = {
       startRow: 2,
       categoriesColumnLabel: 'Categoría',
       userColumnLabel: 'Socio',
-      accounts: {
-        startRow: 2,
-        startCol: 3
-      },
+      accountColumnLabel: 'Cuenta',
       value: {
         startRow: 2,
         startCol: 7
@@ -72,10 +69,8 @@ Config = {
       }
     },
     accounts: {
-      keys: {
-        startRow: 2,
-        startCol: 1
-      }
+      startRow: 2,
+      keyColumnLabel: 'key'
     },
     users: {
       startRow: 2,

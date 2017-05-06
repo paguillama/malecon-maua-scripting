@@ -16,10 +16,10 @@ Invoice = (function () {
   }
 
   function checkUsers(range) {
-    var sheet = SpreadsheetApp.openById(Config.ids.usersSpreadsheet)
+    var usersSheet = SpreadsheetApp.openById(Config.ids.usersSpreadsheet)
       .getSheetByName(Config.sheetNames.users);
-    var position = Utils.getPosition(sheet, Config.positioning.users.keyColumnLabel, Config.positioning.users.startRow);
-    var values = Utils.getValues(Config.ids.usersSpreadsheet, Config.sheetNames.users, position);
+    var usersPosition = Utils.getPosition(usersSheet, Config.positioning.users.keyColumnLabel, Config.positioning.users.startRow);
+    var values = Utils.getValues(Config.ids.usersSpreadsheet, Config.sheetNames.users, usersPosition);
 
     var rangeToValidate;
     if (range) {
@@ -34,20 +34,18 @@ Invoice = (function () {
   }
 
   function checkAccounts(range) {
-    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.accounts, {
-      startRow: Config.positioning.accounts.keys.startRow,
-      startCol: Config.positioning.accounts.keys.startCol
-    });
-
-    var startRow = Config.positioning.invoice.accounts.startRow,
-      startCol = Config.positioning.invoice.accounts.startCol;
+    var accountsSheet = SpreadsheetApp.openById(Config.ids.configSpreadsheet)
+      .getSheetByName(Config.sheetNames.accounts);
+    var accountsPosition = Utils.getPosition(accountsSheet, Config.positioning.accounts.keyColumnLabel, Config.positioning.accounts.startRow);
+    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.accounts, accountsPosition);
 
     var rangeToValidate;
     if (range) {
       rangeToValidate = range;
     } else {
       var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
-      rangeToValidate = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, Config.positioning.invoice.startRow);
+      rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
 
     Utils.createValueInListValidation(values, rangeToValidate);

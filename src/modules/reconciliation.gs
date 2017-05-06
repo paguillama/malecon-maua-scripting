@@ -75,7 +75,7 @@ Reconciliation = (function () {
     // TODO - move
     var dateIndex = 0;
     var userIndex = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, startRow).startCol;
-    var accountIndex = 2;
+    var accountIndex = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, startRow).startCol;
     var numberIndex = 3;
     var seriesIndex = 4;
     var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow).startCol - 1;

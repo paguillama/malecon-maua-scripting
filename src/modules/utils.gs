@@ -55,11 +55,11 @@ Utils = (function () {
   }
 
   function getPosition(sheet, label, startRow) {
-    var values = sheet.getRange(1, 1, 1, sheet.getMaxRows())
+    var values = sheet.getRange(1, 1, 1, sheet.getMaxColumns())
       .getValues();
 
-    var columnIndex = values[0].reduce(function(column, value, index) {
-        return column || (value === label ? index : null);
+    var columnIndex = values[0].reduce(function(columnIndex, value, index) {
+        return columnIndex !== null ? columnIndex : (value === label ? index : null);
     }, null);
 
     if (columnIndex === null) {

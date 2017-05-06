@@ -33,8 +33,9 @@ function checkUsers(eventRange) {
 }
 
 function checkAccounts(eventRange) {
+  var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.accountColumnLabel, malecon.Config.positioning.invoice.startRow);
   malecon.Utils.checkEventRangeColumnWithValues(eventRange,
-    malecon.Config.positioning.invoice.accounts,
+    position,
     malecon.Config.sheetNames.invoicesTransactions,
     malecon.Invoice.checkAccounts);
 }
