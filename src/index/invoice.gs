@@ -41,8 +41,9 @@ function checkAccounts(eventRange) {
 }
 
 function dataFormat(eventRange) {
+  var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.valueColumnLabel, malecon.Config.positioning.invoice.startRow);
   malecon.Utils.checkEventRangeColumnWithValues(eventRange,
-    malecon.Config.positioning.invoice.value,
+    position,
     malecon.Config.sheetNames.invoicesTransactions,
     malecon.Invoice.dataFormat);
 }

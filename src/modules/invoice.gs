@@ -52,15 +52,13 @@ Invoice = (function () {
   }
 
   function dataFormat (range) {
-
     var rangeToFormat;
     if (range) {
       rangeToFormat = range;
     } else {
-      var startRow = Config.positioning.invoice.value.startRow,
-        startCol = Config.positioning.invoice.value.startCol;
       var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
-      rangeToFormat = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, Config.positioning.invoice.startRow);
+      rangeToFormat = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
 
     rangeToFormat.setNumberFormat(Config.formatting.decimalNumber);
