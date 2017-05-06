@@ -72,15 +72,14 @@ Reconciliation = (function () {
     var range = sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
     var values = range.getValues();
 
-    // TODO - move
-    var dateIndex = 0;
-    var userIndex = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, startRow).startCol;
-    var accountIndex = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, startRow).startCol;
-    var numberIndex = 3;
-    var seriesIndex = 4;
+    var dateIndex = Utils.getPosition(sheet, Config.positioning.invoice.dateColumnLabel, startRow).startCol - 1;
+    var userIndex = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, startRow).startCol - 1;
+    var accountIndex = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, startRow).startCol - 1;
+    var numberIndex = Utils.getPosition(sheet, Config.positioning.invoice.numberColumnLabel, startRow).startCol - 1;
+    var seriesIndex = Utils.getPosition(sheet, Config.positioning.invoice.seriesColumnLabel, startRow).startCol - 1;
     var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow).startCol - 1;
-    var valueIndex = 6;
-    var amountIndex = 7;
+    var valueIndex = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, startRow).startCol - 1;
+    var amountIndex = Utils.getPosition(sheet, Config.positioning.invoice.amountColumnLabel, startRow).startCol - 1;
 
     var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&

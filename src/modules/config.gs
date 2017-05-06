@@ -45,6 +45,11 @@ Config = {
       categoriesColumnLabel: 'Categoría',
       userColumnLabel: 'Socio',
       accountColumnLabel: 'Cuenta',
+      dateColumnLabel: 'Fecha',
+      numberColumnLabel: 'Número recibo',
+      seriesColumnLabel: 'Serie recibo',
+      valueColumnLabel: 'Valor',
+      amountColumnLabel: 'Monto',
       value: {
         startRow: 2,
         startCol: 7
