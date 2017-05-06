@@ -68,7 +68,7 @@ Reconciliation = (function () {
   function getInvoices() {
     var spreadsheet = SpreadsheetApp.openById(Config.ids.invoices);
     var sheet = spreadsheet.getSheetByName(Config.sheetNames.invoicesTransactions);
-    var startRow = 2;
+    var startRow = Config.positioning.invoice.startRow;
     var range = sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
     var values = range.getValues();
 
@@ -78,7 +78,7 @@ Reconciliation = (function () {
     var accountIndex = 2;
     var numberIndex = 3;
     var seriesIndex = 4;
-    var categoryIndex = 5;
+    var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow) - 1;
     var valueIndex = 6;
     var amountIndex = 7;
 

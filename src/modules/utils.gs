@@ -54,6 +54,24 @@ Utils = (function () {
     return range.getValues();
   }
 
+  function getPosition(sheet, label, startRow) {
+    var values = sheet.getRange(1, 1, 1, sheet.getMaxRows())
+      .getValues();
+
+    var columnIndex = values[0].reduce(function(column, value, index) {
+        return column || (value === label ? index : null);
+    }, null);
+
+    if (columnIndex === null) {
+      throw new Error('Columna ' + label + ' no encontrada.');
+    }
+
+    return {
+      startRow: startRow,
+      startCol: columnIndex + 1
+    }
+  }
+
   function getObject(sourceSheetName) {
     var spreadsheet = SpreadsheetApp.openById(Config.ids.configSpreadsheet);
     var sheet = spreadsheet.getSheetByName(sourceSheetName);
@@ -99,6 +117,7 @@ Utils = (function () {
     getOrCreateSpreadsheet: getOrCreateSpreadsheet,
     createValueInListValidation: createValueInListValidation,
     getValues: getValues,
+    getPosition: getPosition,
     getObject: getObject,
     checkEventRangeColumnWithValues: checkEventRangeColumnWithValues
   };

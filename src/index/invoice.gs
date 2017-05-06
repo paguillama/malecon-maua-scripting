@@ -13,8 +13,9 @@ function onEdit(event) {
 }
 
 function checkCategories(eventRange) {
+  var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.categoriesColumnLabel, malecon.Config.positioning.invoice.startRow);
   malecon.Utils.checkEventRangeColumnWithValues(eventRange,
-    malecon.Config.positioning.invoice.categories,
+    position,
     malecon.Config.sheetNames.invoicesTransactions,
     malecon.Invoice.checkCategories);
 }

@@ -41,10 +41,8 @@ Config = {
       }
     },
     invoice: {
-      categories: {
-        startRow: 2,
-        startCol: 6
-      },
+      startRow: 2,
+      categoriesColumnLabel: 'Categoría',
       sourceUserKeys: {
         startRow: 2,
         startCol: 3

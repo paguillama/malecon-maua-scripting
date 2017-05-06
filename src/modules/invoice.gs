@@ -3,15 +3,13 @@ Invoice = (function () {
   function checkCategories (range) {
     var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.transactionCategories);
 
-    var startRow = Config.positioning.invoice.categories.startRow,
-      startCol = Config.positioning.invoice.categories.startCol;
-
     var rangeToValidate;
     if (range) {
       rangeToValidate = range;
     } else {
       var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
-      rangeToValidate = sheet.getRange(startRow, startCol, sheet.getMaxRows() - startRow + 1, 1);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, Config.positioning.invoice.startRow);
+      rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
 
     Utils.createValueInListValidation(values, rangeToValidate);
