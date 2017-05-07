@@ -28,9 +28,9 @@ Reconciliation = (function () {
       return [];
     }
 
-    var sheet = accountsSpreadsheet.getSheetByName(account.sheetName);
+    var accountSheet = accountsSpreadsheet.getSheetByName(account.sheetName);
     var startRow = 2;
-    var range = sheet.getRange(startRow, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
+    var range = accountSheet.getRange(startRow, 1, accountSheet.getMaxRows() - 1, accountSheet.getMaxColumns());
     var values = range.getValues();
 
     var transactionsData = values.reduce(function (transactionsData, row, rowIndex) {
@@ -56,11 +56,14 @@ Reconciliation = (function () {
       invalidRows: []
     });
 
-    transactionsData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
-        .setValues([['Sin conciliar']])
-        .setBackground(Config.colors.error);
-    });
+    if (transactionsData.invalidRows.length) {
+      var reconcileCol = Utils.getPosition(accountSheet, Config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
+      transactionsData.invalidRows.forEach(function (rowIndex) {
+        accountSheet.getRange(rowIndex, reconcileCol, 1, 1)
+          .setValues([['Sin conciliar']])
+          .setBackground(Config.colors.error);
+      });
+    }
 
     return transactionsData.transactions;
   }
@@ -111,9 +114,10 @@ Reconciliation = (function () {
       invalidRows: []
     });
 
+    var reconcileCol = Utils.getPosition(sheet, Config.positioning.invoice.reconcileColumnLabel, startRow).startCol;
     range.setBackground(Config.colors.neutral);
     invoiceData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+      sheet.getRange(rowIndex, reconcileCol, 1, 1)
         .setValues([['Sin conciliar']])
         .setBackground(Config.colors.error);
     });
@@ -133,10 +137,11 @@ Reconciliation = (function () {
 
     var invoicesSheet = SpreadsheetApp.openById(Config.ids.invoices)
       .getSheetByName(Config.sheetNames.invoicesTransactions);
+    var invoiceReconcileCol = Utils.getPosition(invoicesSheet, Config.positioning.invoice.reconcileColumnLabel).startCol;
     var accountsBalanceSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
 
     function addError(message, invoice, user) {
-      invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+      invoicesSheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
         .setValues([[message]])
         .setBackground(Config.colors.error);
 
@@ -172,6 +177,7 @@ Reconciliation = (function () {
 
     accounts.forEach(function (account) {
       var accountSheet = accountsBalanceSpreadsheet.getSheetByName(account.sheetName);
+      var accountReconcileCol = Utils.getPosition(accountSheet, Config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
 
       var accountTransactions = transactions[account.key];
       Object.keys(accountTransactions)
@@ -204,11 +210,11 @@ Reconciliation = (function () {
           }
 
           var color = transaction.reconciled ? Config.colors.neutral : Config.colors.error;
-          accountSheet.getRange(transaction.rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
+          accountSheet.getRange(transaction.rowIndex, accountReconcileCol, 1, 1)
             .setValues([[message]])
             .setBackground(color);
           transaction.invoices.forEach(function (invoice) {
-            invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+            invoicesSheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
               .setValues([[message]])
               .setBackground(color);
           });

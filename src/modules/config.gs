@@ -50,27 +50,16 @@ Config = {
       seriesColumnLabel: 'Serie recibo',
       valueColumnLabel: 'Valor',
       amountColumnLabel: 'Monto',
-      value: {
-        startRow: 2,
-        startCol: 7
-      },
-      match: {
-        startRow: 2,
-        startCol: 10
-      }
+      reconcileColumnLabel: 'Conciliación'
     },
-    balance: {
+    accountBalance: {
       BHU: {
-        match: {
-          startRow: 2,
-          startCol: 9
-        }
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
       },
       BROU: {
-        match: {
-          startRow: 2,
-          startCol: 10
-        }
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
       }
     },
     accounts: {
