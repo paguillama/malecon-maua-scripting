@@ -2,7 +2,12 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu(malecon.Texts.invoice.menu.main)
     .addItem(malecon.Texts.invoice.menu.validate, 'checkInvoice')
+    .addItem(malecon.Texts.balance.menu.reconcile, 'reconcile')
     .addToUi();
+}
+
+function reconcile () {
+  malecon.Reconciliation.reconcile();
 }
 
 function onEdit(event) {
