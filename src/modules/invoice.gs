@@ -70,7 +70,7 @@ Invoice = (function () {
     Utils.createValueInListValidation(values, rangeToValidate);
   }
 
-  function dataFormat (range) {
+  function formatValue(range) {
     var rangeToFormat;
     if (range) {
       rangeToFormat = range;
@@ -82,6 +82,20 @@ Invoice = (function () {
     }
 
     rangeToFormat.setNumberFormat(Config.formatting.decimalNumber);
+  }
+
+  function formatDate(range) {
+    var rangeToFormat;
+    if (range) {
+      rangeToFormat = range;
+    } else {
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.dateColumnLabel, Config.positioning.invoice.startRow);
+      rangeToFormat = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
+    }
+
+    rangeToFormat.setNumberFormat(Config.formatting.date);
   }
 
   function sort() {
@@ -97,7 +111,8 @@ Invoice = (function () {
     checkSkipReconcile: checkSkipReconcile,
     checkAccounts: checkAccounts,
     checkUsers: checkUsers,
-    dataFormat: dataFormat,
+    formatValue: formatValue,
+    formatDate: formatDate,
     sort: sort
   }
 })();

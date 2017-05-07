@@ -13,6 +13,7 @@ Config = {
     attendanceTypes: 'Tipos de asistencias',
     userAttendance: 'Asistencias de socios',
     invoicesTransactions: 'Comprobantes',
+    debitsTransactions: 'Débitos',
     transactionCategories: 'Categorías de transacciones',
     accounts: 'Cuentas'
   },
@@ -51,7 +52,8 @@ Config = {
       valueColumnLabel: 'Valor',
       amountColumnLabel: 'Monto',
       reconcileColumnLabel: 'Conciliación',
-      skipReconcileColumnLabel: 'Evadir concicliación'
+      skipReconcileColumnLabel: 'Evadir concicliación',
+      accountTransactionNumberColumnLabel: 'Comprobante'
     },
     accountBalance: {
       BHU: {
