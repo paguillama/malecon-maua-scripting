@@ -8,7 +8,7 @@ Texts = {
   balance: {
     menu: {
       main: 'Malecón',
-      reconcile: 'Reconciliar'
+      reconcile: 'Conciliar'
     },
     headers: {
       userNumber: 'Socio Nº',
@@ -30,7 +30,8 @@ Texts = {
   invoice: {
     menu: {
       main: 'Malecón',
-      validate: 'Validar'
+      validate: 'Validar',
+      reconcile: 'Conciliar'
     }
   },
   invoiceMigration: {

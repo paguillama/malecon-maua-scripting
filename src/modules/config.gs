@@ -41,50 +41,35 @@ Config = {
       }
     },
     invoice: {
-      categories: {
-        startRow: 2,
-        startCol: 6
-      },
-      sourceUserKeys: {
-        startRow: 2,
-        startCol: 3
-      },
-      targetUserKeys: {
-        startRow: 2,
-        startCol: 2
-      },
-      accounts: {
-        startRow: 2,
-        startCol: 3
-      },
-      value: {
-        startRow: 2,
-        startCol: 7
-      },
-      match: {
-        startRow: 2,
-        startCol: 10
-      }
+      startRow: 2,
+      categoriesColumnLabel: 'Categoría',
+      userColumnLabel: 'Socio',
+      accountColumnLabel: 'Cuenta',
+      dateColumnLabel: 'Fecha',
+      numberColumnLabel: 'Número recibo',
+      seriesColumnLabel: 'Serie recibo',
+      valueColumnLabel: 'Valor',
+      amountColumnLabel: 'Monto',
+      reconcileColumnLabel: 'Conciliación',
+      skipReconcileColumnLabel: 'Evadir concicliación'
     },
-    balance: {
+    accountBalance: {
       BHU: {
-        match: {
-          startRow: 2,
-          startCol: 9
-        }
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
       },
       BROU: {
-        match: {
-          startRow: 2,
-          startCol: 10
-        }
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
       }
     },
     accounts: {
-      keys: {
-        startRow: 2,
-        startCol: 1
-      }
+      startRow: 2,
+      keyColumnLabel: 'key'
+    },
+    users: {
+      startRow: 2,
+      keyColumnLabel: 'Key'
     }
   },
   accounts: [{

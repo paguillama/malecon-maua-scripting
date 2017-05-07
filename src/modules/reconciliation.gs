@@ -28,9 +28,9 @@ Reconciliation = (function () {
       return [];
     }
 
-    var sheet = accountsSpreadsheet.getSheetByName(account.sheetName);
+    var accountSheet = accountsSpreadsheet.getSheetByName(account.sheetName);
     var startRow = 2;
-    var range = sheet.getRange(startRow, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
+    var range = accountSheet.getRange(startRow, 1, accountSheet.getMaxRows() - 1, accountSheet.getMaxColumns());
     var values = range.getValues();
 
     var transactionsData = values.reduce(function (transactionsData, row, rowIndex) {
@@ -56,11 +56,14 @@ Reconciliation = (function () {
       invalidRows: []
     });
 
-    transactionsData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
-        .setValues([['Sin conciliar']])
-        .setBackground(Config.colors.error);
-    });
+    if (transactionsData.invalidRows.length) {
+      var reconcileCol = Utils.getPosition(accountSheet, Config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
+      transactionsData.invalidRows.forEach(function (rowIndex) {
+        accountSheet.getRange(rowIndex, reconcileCol, 1, 1)
+          .setValues([['Sin conciliar']])
+          .setBackground(Config.colors.error);
+      });
+    }
 
     return transactionsData.transactions;
   }
@@ -68,27 +71,27 @@ Reconciliation = (function () {
   function getInvoices() {
     var spreadsheet = SpreadsheetApp.openById(Config.ids.invoices);
     var sheet = spreadsheet.getSheetByName(Config.sheetNames.invoicesTransactions);
-    var startRow = 2;
+    var startRow = Config.positioning.invoice.startRow;
     var range = sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
     var values = range.getValues();
 
-    // TODO - move
-    var dateIndex = 0;
-    var userIndex = 1;
-    var accountIndex = 2;
-    var numberIndex = 3;
-    var seriesIndex = 4;
-    var categoryIndex = 5;
-    var valueIndex = 6;
-    var amountIndex = 7;
+    var dateIndex = Utils.getPosition(sheet, Config.positioning.invoice.dateColumnLabel, startRow).startCol - 1;
+    var userIndex = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, startRow).startCol - 1;
+    var accountIndex = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, startRow).startCol - 1;
+    var numberIndex = Utils.getPosition(sheet, Config.positioning.invoice.numberColumnLabel, startRow).startCol - 1;
+    var seriesIndex = Utils.getPosition(sheet, Config.positioning.invoice.seriesColumnLabel, startRow).startCol - 1;
+    var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow).startCol - 1;
+    var valueIndex = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, startRow).startCol - 1;
+    var amountIndex = Utils.getPosition(sheet, Config.positioning.invoice.amountColumnLabel, startRow).startCol - 1;
+    var skipReconcileIndex = Utils.getPosition(sheet, Config.positioning.invoice.skipReconcileColumnLabel, startRow).startCol - 1;
 
     var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&
         row[userIndex] &&
         row[accountIndex] &&
-        row[numberIndex] &&
         row[categoryIndex] &&
-        row[valueIndex]) {
+        row[valueIndex] &&
+        row[skipReconcileIndex]) {
 
         invoiceData.invoices.push({
           date: row[dateIndex],
@@ -99,6 +102,7 @@ Reconciliation = (function () {
           category: row[categoryIndex],
           value: row[valueIndex],
           amount: row[amountIndex],
+          skipReconcile: row[skipReconcileIndex] === 'Sí',
           rowIndex: rowIndex + startRow
         });
 
@@ -112,9 +116,10 @@ Reconciliation = (function () {
       invalidRows: []
     });
 
+    var reconcileCol = Utils.getPosition(sheet, Config.positioning.invoice.reconcileColumnLabel, startRow).startCol;
     range.setBackground(Config.colors.neutral);
     invoiceData.invalidRows.forEach(function (rowIndex) {
-      sheet.getRange(rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+      sheet.getRange(rowIndex, reconcileCol, 1, 1)
         .setValues([['Sin conciliar']])
         .setBackground(Config.colors.error);
     });
@@ -127,6 +132,7 @@ Reconciliation = (function () {
       usersMap[user.key] = {
         userData: user,
         transactions: [],
+        skippedInvoices: [],
         errorInvoices: []
       };
       return usersMap;
@@ -134,15 +140,20 @@ Reconciliation = (function () {
 
     var invoicesSheet = SpreadsheetApp.openById(Config.ids.invoices)
       .getSheetByName(Config.sheetNames.invoicesTransactions);
+    var invoiceReconcileCol = Utils.getPosition(invoicesSheet, Config.positioning.invoice.reconcileColumnLabel).startCol;
     var accountsBalanceSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
 
-    function addError(message, invoice, user) {
-      invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+    function addError(message, invoice, user, skipInvoice) {
+      invoicesSheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
         .setValues([[message]])
         .setBackground(Config.colors.error);
 
       if (user) {
-        user.errorInvoices.push(invoice);
+        if (skipInvoice) {
+          user.skippedInvoices.push(invoice);
+        } else {
+          user.errorInvoices.push(invoice);
+        }
       }
     }
 
@@ -150,17 +161,17 @@ Reconciliation = (function () {
 
       var user = usersMap[invoice.user];
       if (!user) {
-        return addError('Socio desconocido', invoice);
+        return addError('Socio desconocido', invoice, false);
       }
 
       var accountTransactions = transactions[invoice.account];
       if (!accountTransactions) {
-        return addError('Cuenta desconocida', invoice, user);
+        return addError('Cuenta desconocida', invoice, user, false);
       }
 
-      var transaction = accountTransactions[invoice.number];
+      var transaction = invoice.number && accountTransactions[invoice.number];
       if (!transaction) {
-        return addError('Sin conciliar', invoice, user);
+        return addError('Sin conciliar', invoice, user, invoice.skipReconcile);
       }
 
       transaction.invoices.push(invoice);
@@ -173,6 +184,7 @@ Reconciliation = (function () {
 
     accounts.forEach(function (account) {
       var accountSheet = accountsBalanceSpreadsheet.getSheetByName(account.sheetName);
+      var accountReconcileCol = Utils.getPosition(accountSheet, Config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
 
       var accountTransactions = transactions[account.key];
       Object.keys(accountTransactions)
@@ -205,11 +217,11 @@ Reconciliation = (function () {
           }
 
           var color = transaction.reconciled ? Config.colors.neutral : Config.colors.error;
-          accountSheet.getRange(transaction.rowIndex, Config.positioning.balance[account.key].match.startCol, 1, 1)
+          accountSheet.getRange(transaction.rowIndex, accountReconcileCol, 1, 1)
             .setValues([[message]])
             .setBackground(color);
           transaction.invoices.forEach(function (invoice) {
-            invoicesSheet.getRange(invoice.rowIndex, Config.positioning.invoice.match.startCol, 1, 1)
+            invoicesSheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
               .setValues([[message]])
               .setBackground(color);
           });
@@ -231,22 +243,27 @@ Reconciliation = (function () {
     function setUserSpreadsheetData(user, spreadsheetId) {
       var accountCategoryMap = user.transactions.reduce(function (accountCategoryMap, transaction) {
         if (transaction.reconciled) {
-          transaction.invoices.forEach(function (invoice) {
-            var accountCategories = accountCategoryMap[invoice.account];
-            if (!accountCategories) {
-              accountCategories = accountCategoryMap[invoice.account] = {};
-            }
-
-            var categoryInvoices = accountCategories[invoice.category];
-            if (!categoryInvoices) {
-              categoryInvoices = accountCategories[invoice.category] = [];
-            }
-
-            categoryInvoices.push(invoice);
-          });
+          addInvoicesToAccountCategoryMap(transaction.invoices, accountCategoryMap);
         }
         return accountCategoryMap;
       }, {});
+      addInvoicesToAccountCategoryMap(user.skippedInvoices, accountCategoryMap);
+
+      function addInvoicesToAccountCategoryMap(invoices, accountCategoryMap) {
+        invoices.forEach(function (invoice) {
+          var accountCategories = accountCategoryMap[invoice.account];
+          if (!accountCategories) {
+            accountCategories = accountCategoryMap[invoice.account] = {};
+          }
+
+          var categoryInvoices = accountCategories[invoice.category];
+          if (!categoryInvoices) {
+            categoryInvoices = accountCategories[invoice.category] = [];
+          }
+
+          categoryInvoices.push(invoice);
+        });
+      }
 
       var position = createSheet(user, spreadsheetId);
       Object.keys(accountCategoryMap)
@@ -328,6 +345,9 @@ Reconciliation = (function () {
         .setValues([headers]);
       row = row + 1;
 
+      categoryInvoices.sort(function compare(a, b) {
+        return a.date >= b.date ? 1 : -1;
+      });
       var transactionValues = categoryInvoices.map(function (transaction) {
         return [
           transaction.date,
