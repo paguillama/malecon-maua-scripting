@@ -13,6 +13,7 @@ Config = {
     attendanceTypes: 'Tipos de asistencias',
     userAttendance: 'Asistencias de socios',
     invoicesTransactions: 'Comprobantes',
+    debitsTransactions: 'Débitos',
     transactionCategories: 'Categorías de transacciones',
     accounts: 'Cuentas'
   },
