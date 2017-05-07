@@ -84,6 +84,7 @@ Reconciliation = (function () {
     var valueIndex = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, startRow).startCol - 1;
     var amountIndex = Utils.getPosition(sheet, Config.positioning.invoice.amountColumnLabel, startRow).startCol - 1;
     var skipReconcileIndex = Utils.getPosition(sheet, Config.positioning.invoice.skipReconcileColumnLabel, startRow).startCol - 1;
+    var accountTransactionNumberIndex = Utils.getPosition(sheet, Config.positioning.invoice.accountTransactionNumberColumnLabel, startRow).startCol - 1;
 
     var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&
@@ -103,6 +104,7 @@ Reconciliation = (function () {
           value: row[valueIndex],
           amount: row[amountIndex],
           skipReconcile: row[skipReconcileIndex] === 'Sí',
+          accountTransactionNumber: row[accountTransactionNumberIndex],
           rowIndex: rowIndex + startRow
         });
 
@@ -169,7 +171,8 @@ Reconciliation = (function () {
         return addError('Cuenta desconocida', invoice, user, false);
       }
 
-      var transaction = invoice.number && accountTransactions[invoice.number];
+      var transaction = invoice.number && accountTransactions[invoice.number] ||
+        invoice.accountTransactionNumber && accountTransactions[invoice.accountTransactionNumber];
       if (!transaction) {
         return addError('Sin conciliar', invoice, user, invoice.skipReconcile);
       }
@@ -351,7 +354,7 @@ Reconciliation = (function () {
       var transactionValues = categoryInvoices.map(function (transaction) {
         return [
           transaction.date,
-          transaction.number,
+          transaction.number || transaction.accountTransactionNumber,
           transaction.amount,
           transaction.value
         ];

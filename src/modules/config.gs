@@ -51,7 +51,8 @@ Config = {
       valueColumnLabel: 'Valor',
       amountColumnLabel: 'Monto',
       reconcileColumnLabel: 'Conciliación',
-      skipReconcileColumnLabel: 'Evadir concicliación'
+      skipReconcileColumnLabel: 'Evadir concicliación',
+      accountTransactionNumberColumnLabel: 'Comprobante'
     },
     accountBalance: {
       BHU: {

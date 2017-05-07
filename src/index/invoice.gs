@@ -12,11 +12,14 @@ function reconcile () {
 
 function onEdit(event) {
   try {
-    checkCategories(event.range);
-    checkSkipReconcile(event.range);
-    checkUsers(event.range);
-    checkAccounts(event.range);
-    dataFormat(event.range);
+    if (event.range.getSheet().getName() === malecon.Config.sheetNames.invoicesTransactions) {
+      checkCategories(event.range);
+      checkSkipReconcile(event.range);
+      checkUsers(event.range);
+      checkAccounts(event.range);
+      formatValue(event.range);
+      formatDate(event.range);
+    }
   } catch(e) {
     Browser.msgBox('Error', 'Error: ' + JSON.stringify(e), Browser.Buttons.OK);
   }
@@ -54,12 +57,20 @@ function checkAccounts(eventRange) {
     malecon.Invoice.checkAccounts);
 }
 
-function dataFormat(eventRange) {
+function formatValue(eventRange) {
   var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.valueColumnLabel, malecon.Config.positioning.invoice.startRow);
   malecon.Utils.checkEventRangeColumnWithValues(eventRange,
     position,
     malecon.Config.sheetNames.invoicesTransactions,
-    malecon.Invoice.dataFormat);
+    malecon.Invoice.formatValue);
+}
+
+function formatDate(eventRange) {
+  var position = malecon.Utils.getPosition(eventRange.getSheet(), malecon.Config.positioning.invoice.dateColumnLabel, malecon.Config.positioning.invoice.startRow);
+  malecon.Utils.checkEventRangeColumnWithValues(eventRange,
+    position,
+    malecon.Config.sheetNames.invoicesTransactions,
+    malecon.Invoice.formatDate);
 }
 
 function checkInvoice () {
@@ -67,6 +78,7 @@ function checkInvoice () {
   malecon.Invoice.checkSkipReconcile();
   malecon.Invoice.checkUsers();
   malecon.Invoice.checkAccounts();
-  malecon.Invoice.dataFormat();
+  malecon.Invoice.formatDate();
+  malecon.Invoice.formatValue();
   malecon.Invoice.sort();
 }
