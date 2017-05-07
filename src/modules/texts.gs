@@ -30,7 +30,8 @@ Texts = {
   invoice: {
     menu: {
       main: 'Malecón',
-      validate: 'Validar'
+      validate: 'Validar',
+      reconcile: 'Conciliar'
     }
   },
   invoiceMigration: {

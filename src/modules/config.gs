@@ -50,7 +50,8 @@ Config = {
       seriesColumnLabel: 'Serie recibo',
       valueColumnLabel: 'Valor',
       amountColumnLabel: 'Monto',
-      reconcileColumnLabel: 'Conciliación'
+      reconcileColumnLabel: 'Conciliación',
+      skipReconcileColumnLabel: 'Evadir concicliación'
     },
     accountBalance: {
       BHU: {

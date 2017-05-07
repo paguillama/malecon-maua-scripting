@@ -83,14 +83,15 @@ Reconciliation = (function () {
     var categoryIndex = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, startRow).startCol - 1;
     var valueIndex = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, startRow).startCol - 1;
     var amountIndex = Utils.getPosition(sheet, Config.positioning.invoice.amountColumnLabel, startRow).startCol - 1;
+    var skipReconcileIndex = Utils.getPosition(sheet, Config.positioning.invoice.skipReconcileColumnLabel, startRow).startCol - 1;
 
     var invoiceData = values.reduce(function (invoiceData, row, rowIndex) {
       if (row[dateIndex] &&
         row[userIndex] &&
         row[accountIndex] &&
-        row[numberIndex] &&
         row[categoryIndex] &&
-        row[valueIndex]) {
+        row[valueIndex] &&
+        row[skipReconcileIndex]) {
 
         invoiceData.invoices.push({
           date: row[dateIndex],
@@ -101,6 +102,7 @@ Reconciliation = (function () {
           category: row[categoryIndex],
           value: row[valueIndex],
           amount: row[amountIndex],
+          skipReconcile: row[skipReconcileIndex] === 'Sí',
           rowIndex: rowIndex + startRow
         });
 
@@ -130,6 +132,7 @@ Reconciliation = (function () {
       usersMap[user.key] = {
         userData: user,
         transactions: [],
+        skippedInvoices: [],
         errorInvoices: []
       };
       return usersMap;
@@ -140,13 +143,17 @@ Reconciliation = (function () {
     var invoiceReconcileCol = Utils.getPosition(invoicesSheet, Config.positioning.invoice.reconcileColumnLabel).startCol;
     var accountsBalanceSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
 
-    function addError(message, invoice, user) {
+    function addError(message, invoice, user, skipInvoice) {
       invoicesSheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
         .setValues([[message]])
         .setBackground(Config.colors.error);
 
       if (user) {
-        user.errorInvoices.push(invoice);
+        if (skipInvoice) {
+          user.skippedInvoices.push(invoice);
+        } else {
+          user.errorInvoices.push(invoice);
+        }
       }
     }
 
@@ -154,17 +161,17 @@ Reconciliation = (function () {
 
       var user = usersMap[invoice.user];
       if (!user) {
-        return addError('Socio desconocido', invoice);
+        return addError('Socio desconocido', invoice, false);
       }
 
       var accountTransactions = transactions[invoice.account];
       if (!accountTransactions) {
-        return addError('Cuenta desconocida', invoice, user);
+        return addError('Cuenta desconocida', invoice, user, false);
       }
 
-      var transaction = accountTransactions[invoice.number];
+      var transaction = invoice.number && accountTransactions[invoice.number];
       if (!transaction) {
-        return addError('Sin conciliar', invoice, user);
+        return addError('Sin conciliar', invoice, user, invoice.skipReconcile);
       }
 
       transaction.invoices.push(invoice);
@@ -236,22 +243,27 @@ Reconciliation = (function () {
     function setUserSpreadsheetData(user, spreadsheetId) {
       var accountCategoryMap = user.transactions.reduce(function (accountCategoryMap, transaction) {
         if (transaction.reconciled) {
-          transaction.invoices.forEach(function (invoice) {
-            var accountCategories = accountCategoryMap[invoice.account];
-            if (!accountCategories) {
-              accountCategories = accountCategoryMap[invoice.account] = {};
-            }
-
-            var categoryInvoices = accountCategories[invoice.category];
-            if (!categoryInvoices) {
-              categoryInvoices = accountCategories[invoice.category] = [];
-            }
-
-            categoryInvoices.push(invoice);
-          });
+          addInvoicesToAccountCategoryMap(transaction.invoices, accountCategoryMap);
         }
         return accountCategoryMap;
       }, {});
+      addInvoicesToAccountCategoryMap(user.skippedInvoices, accountCategoryMap);
+
+      function addInvoicesToAccountCategoryMap(invoices, accountCategoryMap) {
+        invoices.forEach(function (invoice) {
+          var accountCategories = accountCategoryMap[invoice.account];
+          if (!accountCategories) {
+            accountCategories = accountCategoryMap[invoice.account] = {};
+          }
+
+          var categoryInvoices = accountCategories[invoice.category];
+          if (!categoryInvoices) {
+            categoryInvoices = accountCategories[invoice.category] = [];
+          }
+
+          categoryInvoices.push(invoice);
+        });
+      }
 
       var position = createSheet(user, spreadsheetId);
       Object.keys(accountCategoryMap)
@@ -333,6 +345,9 @@ Reconciliation = (function () {
         .setValues([headers]);
       row = row + 1;
 
+      categoryInvoices.sort(function compare(a, b) {
+        return a.date >= b.date ? 1 : -1;
+      });
       var transactionValues = categoryInvoices.map(function (transaction) {
         return [
           transaction.date,

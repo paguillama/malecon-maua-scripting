@@ -7,8 +7,25 @@ Invoice = (function () {
     if (range) {
       rangeToValidate = range;
     } else {
-      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
       var position = Utils.getPosition(sheet, Config.positioning.invoice.categoriesColumnLabel, Config.positioning.invoice.startRow);
+      rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
+    }
+
+    Utils.createValueInListValidation(values, rangeToValidate);
+  }
+
+  function checkSkipReconcile (range) {
+    var values = [['Sí'], ['No']];
+
+    var rangeToValidate;
+    if (range) {
+      rangeToValidate = range;
+    } else {
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
+      var position = Utils.getPosition(sheet, Config.positioning.invoice.skipReconcileColumnLabel, Config.positioning.invoice.startRow);
       rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
 
@@ -25,7 +42,8 @@ Invoice = (function () {
     if (range) {
       rangeToValidate = range;
     } else {
-      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
       var position = Utils.getPosition(sheet, Config.positioning.invoice.userColumnLabel, Config.positioning.invoice.startRow);
       rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
@@ -43,7 +61,8 @@ Invoice = (function () {
     if (range) {
       rangeToValidate = range;
     } else {
-      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
       var position = Utils.getPosition(sheet, Config.positioning.invoice.accountColumnLabel, Config.positioning.invoice.startRow);
       rangeToValidate = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
@@ -56,7 +75,8 @@ Invoice = (function () {
     if (range) {
       rangeToFormat = range;
     } else {
-      var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
+      var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+        .getSheetByName(Config.sheetNames.invoicesTransactions);
       var position = Utils.getPosition(sheet, Config.positioning.invoice.valueColumnLabel, Config.positioning.invoice.startRow);
       rangeToFormat = sheet.getRange(position.startRow, position.startCol, sheet.getMaxRows() - position.startRow + 1, 1);
     }
@@ -65,14 +85,16 @@ Invoice = (function () {
   }
 
   function sort() {
-    var startRow = Config.positioning.invoice.value.startRow;
-    var sheet = SpreadsheetApp.getActive().getSheetByName(Config.sheetNames.invoicesTransactions);
+    var startRow = Config.positioning.invoice.startRow;
+    var sheet = SpreadsheetApp.openById(Config.ids.invoices)
+      .getSheetByName(Config.sheetNames.invoicesTransactions);
     var range = sheet.getRange(startRow, 1, sheet.getMaxRows() - startRow + 1, sheet.getMaxColumns());
     range.sort(1);
   }
 
   return {
     checkCategories: checkCategories,
+    checkSkipReconcile: checkSkipReconcile,
     checkAccounts: checkAccounts,
     checkUsers: checkUsers,
     dataFormat: dataFormat,
