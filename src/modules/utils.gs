@@ -72,16 +72,18 @@ Utils = (function () {
     }
   }
 
-  function getObject(sourceSheetName) {
-    var spreadsheet = SpreadsheetApp.openById(Config.ids.configSpreadsheet);
+  function getObject(sourceSheetName, options) {
+    var spreadsheet = SpreadsheetApp.openById(options && options.spreadsheetId || Config.ids.configSpreadsheet);
     var sheet = spreadsheet.getSheetByName(sourceSheetName);
-    var range = sheet.getRange(1, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
 
-    if (range.length < 2) {
+    if (sheet.getMaxRows() < 2) {
       return [];
     }
 
+    var range = sheet.getRange(1, 1, sheet.getMaxRows(), sheet.getMaxColumns());
+
     var values = range.getValues();
+
     var indexProperties = values[0];
 
     return values.slice(1).map(function (row) {

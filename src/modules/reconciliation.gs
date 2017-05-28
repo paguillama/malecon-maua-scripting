@@ -2,7 +2,9 @@ Reconciliation = (function () {
 
   function reconcile() {
 
-    var accounts = Utils.getObject(Config.sheetNames.accounts);
+    var accounts = Utils.getObject(Config.sheetNames.accounts).filter(function (account) {
+      return account.sheetName;
+    });
 
     var accountsSpreadsheet = SpreadsheetApp.openById(Config.ids.accountsBalance);
     var transactions = accounts.reduce(function (transactions, account) {
@@ -245,6 +247,24 @@ Reconciliation = (function () {
   }
 
   function createUsersSpreadsheets(usersMap) {
+    
+    var categories = Utils.getObject(Config.sheetNames.transactionCategories);
+    var monthlyCategories = categories.reduce(function (monthlyCategories, category) {
+      if(category.type === Config.transactionCategoryTypes.monthlyFromBeginning ||
+        category.type === Config.transactionCategoryTypes.monthlyFromAdmission) {
+
+        var monthlyValues = Utils.getObject(category.key, {
+          spreadsheetId: Config.ids.invoiceCategoryMonthlyValues
+        });
+
+        monthlyCategories.push({
+          categoryData: category,
+          monthlyValues: monthlyValues.concat().sort(sortByObjectDate)
+        })
+      }
+
+      return monthlyCategories;
+    }, []);
 
     Object.keys(usersMap).forEach(function (key) {
       var user = usersMap[key];
@@ -254,13 +274,18 @@ Reconciliation = (function () {
     });
 
     function setUserSpreadsheetData(user, spreadsheetId) {
-      var accountCategoryMap = user.transactions.reduce(function (accountCategoryMap, transaction) {
+      var userData = user.transactions.reduce(function (userData, transaction) {
         if (transaction.reconciled) {
-          addInvoicesToAccountCategoryMap(transaction.invoices, accountCategoryMap);
+          addInvoicesToAccountCategoryMap(transaction.invoices, userData.accountCategoryMap);
+          addInvoicesToCategoryMap(transaction.invoices, userData.categoryMap);
         }
-        return accountCategoryMap;
-      }, {});
-      addInvoicesToAccountCategoryMap(user.skippedInvoices, accountCategoryMap);
+        return userData;
+      }, {
+        accountCategoryMap: {},
+        categoryMap: {}
+      });
+      addInvoicesToAccountCategoryMap(user.skippedInvoices, userData.accountCategoryMap);
+      addInvoicesToCategoryMap(user.skippedInvoices, userData.categoryMap);
 
       function addInvoicesToAccountCategoryMap(invoices, accountCategoryMap) {
         invoices.forEach(function (invoice) {
@@ -278,10 +303,49 @@ Reconciliation = (function () {
         });
       }
 
+      function addInvoicesToCategoryMap(invoices, categoryMap) {
+        invoices.forEach(function (invoice) {
+          var categoryInvoices = categoryMap[invoice.category];
+          if (!categoryInvoices) {
+            categoryInvoices = categoryMap[invoice.category] = [];
+          }
+
+          categoryInvoices.push(invoice);
+        });
+      }
+
+      var monthsData = monthlyCategories.reduce(function (monthsData, category) {
+        var invoices = user.userData.active && userData.categoryMap[category.categoryData.key] || [];
+        const sortedInvoices = invoices.concat().sort(sortByObjectDate);
+
+        var categoryMonthsData = sortedInvoices.reduce(function (categoryMonthsData, invoice) {
+          var categoryValueOnInvoiceDate = getCategoryValueOnDate(invoice.date, category.monthlyValues);
+          if (categoryValueOnInvoiceDate !== 0) {
+            var accumulatedValue = categoryMonthsData.remainder + invoice.value;
+
+            if (accumulatedValue >= categoryValueOnInvoiceDate) {
+              categoryMonthsData.months += Math.floor(accumulatedValue / categoryValueOnInvoiceDate);
+              categoryMonthsData.remainder = accumulatedValue % categoryValueOnInvoiceDate;
+            } else {
+              categoryMonthsData.remainder = accumulatedValue;
+            }
+          }
+
+          return categoryMonthsData;
+        }, {
+          months: 0,
+          remainder: 0
+        });
+
+        monthsData[category.categoryData.key] = categoryMonthsData;
+
+        return monthsData;
+      }, {});
+
       var position = createSheet(user, spreadsheetId);
-      Object.keys(accountCategoryMap)
+      Object.keys(userData.accountCategoryMap)
         .forEach(function (accountKey) {
-          var accountCategories = accountCategoryMap[accountKey];
+          var accountCategories = userData.accountCategoryMap[accountKey];
           Object.keys(accountCategories)
             .forEach(function (categoryKey) {
               var categoryInvoices = accountCategories[categoryKey];
@@ -404,6 +468,25 @@ Reconciliation = (function () {
         sheet: position.sheet
       }
     }
+  }
+
+  function getCategoryValueOnDate(date, monthlyValues) {
+    var value = 0;
+
+    var parsedDate = Date.parse(date)
+    for(var i = 0; i < monthlyValues.length; i++) {
+      if (Date.parse(monthlyValues[i].date) > parsedDate) {
+        break;
+      }
+
+      value = monthlyValues[i].value;
+    }
+
+    return value;
+  }
+
+  function sortByObjectDate(a, b) {
+    return Date.parse(a.date) < Date.parse(b.date);
   }
 
   return {
