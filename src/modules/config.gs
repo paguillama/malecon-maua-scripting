@@ -4,7 +4,8 @@ Config = {
     usersSpreadsheet: '1-PkcLTxb8NCK3ufhLFDRlyaAV6mEv2npioQP1ieDH0Q',
     accountsBalance: '1YVh1lq7XgI6RpnUpjtAcBMYyT7udA9fZuIvBnHu49zY',
     configSpreadsheet: '1lAZM_7DSeyRv8qoOrQA0O0WpIh7Sy95d3kKpMZ55pkM',
-    invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg'
+    invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg',
+    invoiceCategoryMonthlyValues: '1YbAZMu4YQeUn7s4r9_AQnoBJxnTHgarI8s8Z988YiL0'
   },
   sheetNames: {
     balance: 'Balance',
@@ -16,6 +17,10 @@ Config = {
     debitsTransactions: 'Débitos',
     transactionCategories: 'Categorías de transacciones',
     accounts: 'Cuentas'
+  },
+  transactionCategoryTypes: {
+    monthlyFromBeginning: 'Mensual desde inicio',
+    monthlyFromAdmission: 'Mensual desde ingreso'
   },
   formatting: {
     date: 'yyy-mm-dd',

@@ -1,7 +1,9 @@
 Invoice = (function () {
 
   function checkCategories (range) {
-    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.transactionCategories);
+    var values = Utils.getValues(Config.ids.configSpreadsheet, Config.sheetNames.transactionCategories, {
+      startRow: 2
+    });
 
     var rangeToValidate;
     if (range) {

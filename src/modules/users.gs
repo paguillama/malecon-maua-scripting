@@ -24,7 +24,7 @@ Users = (function () {
           document: rowValue[3],
           phone: rowValue[4],
           startDate: rowValue[5],
-          active: rowValue[6]
+          active: rowValue[8]
         });
       }
       return users;
