@@ -266,14 +266,21 @@ Reconciliation = (function () {
       return monthlyCategories;
     }, []);
 
+    var categoriesTypeHash = categories.reduce(function (categoriesTypeHash, category) {
+      categoriesTypeHash[category.key] = category.type
+      return categoriesTypeHash;
+    }, {});
+
+    var organizationStartDate = new Date(Config.organizationStartDate);
+
     Object.keys(usersMap).forEach(function (key) {
       var user = usersMap[key];
       var spreadsheetName = 'Nº ' + user.userData.number + ' ' + user.userData.name;
       var spreadsheetId = Utils.getOrCreateSpreadsheet(spreadsheetName, Config.ids.userBalancesFolder, Config.sheetNames.balance);
-      setUserSpreadsheetData(user, spreadsheetId);
+      setUserSpreadsheetData(user, spreadsheetId, categoriesTypeHash, organizationStartDate);
     });
 
-    function setUserSpreadsheetData(user, spreadsheetId) {
+    function setUserSpreadsheetData(user, spreadsheetId, categoriesTypeHash, organizationStartDate) {
       var userData = user.transactions.reduce(function (userData, transaction) {
         if (transaction.reconciled) {
           addInvoicesToAccountCategoryMap(transaction.invoices, userData.accountCategoryMap);
@@ -331,10 +338,13 @@ Reconciliation = (function () {
             }
           }
 
+          categoryMonthsData.total += invoice.value;
+
           return categoryMonthsData;
         }, {
           months: 0,
-          remainder: 0
+          remainder: 0,
+          total: 0
         });
 
         monthsData[category.categoryData.key] = categoryMonthsData;
@@ -342,7 +352,7 @@ Reconciliation = (function () {
         return monthsData;
       }, {});
 
-      var position = createSheet(user, spreadsheetId);
+      var position = createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate);
       Object.keys(userData.accountCategoryMap)
         .forEach(function (accountKey) {
           var accountCategories = userData.accountCategoryMap[accountKey];
@@ -360,7 +370,7 @@ Reconciliation = (function () {
         });
     }
 
-    function createSheet(user, spreadsheetId) {
+    function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate) {
       var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
 
       var sheet = spreadsheet.getSheetByName(Config.sheetNames.balance);
@@ -391,7 +401,38 @@ Reconciliation = (function () {
       sheet.getRange(row + 2, 1)
         .setNumberFormat(Config.formatting.date);
 
-      row = row + headers.length + 1;
+      row += headers.length + 1;
+
+      if (user.userData.active) {
+        var userStartDate = new Date(user.userData.startDate);
+        userStartDate.setUTCDate(1)
+
+        var monthRows = Object.keys(monthsData)
+          .map(function (key) {
+            var item = monthsData[key]
+            return [
+              key,
+              item.total,
+              getMonth(item.months, categoriesTypeHash[key], userStartDate, organizationStartDate),
+              item.remainder
+            ]
+          })
+
+        var monthsTable = [
+          ['Resumen por categorías', '', '', ''],
+          ['Categoría', 'Valor', 'Último mes pago', 'Remanente']
+        ].concat(monthRows)
+
+        sheet.getRange(row, 1, monthsTable.length, monthsTable[0].length)
+          .setValues(monthsTable)
+          .setBorder(true, true, true, true, true, true);
+
+        sheet.getRange(row, 1, 1, monthsTable[0].length)
+          .mergeAcross()
+          .setHorizontalAlignment('center');
+
+        row += monthsTable.length + 1
+      }
 
       return {
         row: row,
@@ -487,6 +528,22 @@ Reconciliation = (function () {
 
   function sortByObjectDate(a, b) {
     return Date.parse(a.date) < Date.parse(b.date);
+  }
+
+  function getMonth(months, categoryType, userStartDate, organizationStartDate) {
+
+    if (categoryType === Config.transactionCategoryTypes.monthlyFromAdmission) {
+      return addMonthsToDateAndFormat(months, userStartDate)
+    } else {
+      return addMonthsToDateAndFormat(months, organizationStartDate)
+    }
+  }
+
+  function addMonthsToDateAndFormat(months, date) {
+    var newDate = new Date(date.getTime());
+    // -1 because the start month should be paid too
+    newDate.setUTCMonth(newDate.getUTCMonth() + months - 1);
+    return (newDate.getUTCMonth() + 1) + '/' + newDate.getUTCFullYear()
   }
 
   return {
