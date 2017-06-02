@@ -7,6 +7,7 @@ Config = {
     invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg',
     invoiceCategoryMonthlyValues: '1YbAZMu4YQeUn7s4r9_AQnoBJxnTHgarI8s8Z988YiL0'
   },
+  organizationStartDate: '2009-01-01T03:00:00.000Z',
   sheetNames: {
     balance: 'Balance',
     users: 'Lista',
