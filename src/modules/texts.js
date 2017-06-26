@@ -1,4 +1,4 @@
-Texts = {
+module.exports = {
   attendance: {
     menu: {
       main: 'Malecón',
