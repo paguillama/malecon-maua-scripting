@@ -94,7 +94,7 @@ function updateUsers() {
         return 1;
       }
 
-      return a.key < b.key ? -1 : 1;
+      return a.number < b.number ? -1 : 1;
     });
 
   const newValues = [ usersArray.map(user => user.key) ];
