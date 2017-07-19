@@ -2,7 +2,8 @@ module.exports = {
   attendance: {
     menu: {
       main: 'Malecón',
-      validate: 'Validar'
+      validate: 'Validar',
+      takeAttendance: 'Tomar asistencias'
     }
   },
   balance: {

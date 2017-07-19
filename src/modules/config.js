@@ -2,6 +2,7 @@ module.exports = {
   ids: {
     userBalancesFolder: '0B-8lg-RJkLm3YmFlRGJSZi1rNm8',
     usersSpreadsheet: '1-PkcLTxb8NCK3ufhLFDRlyaAV6mEv2npioQP1ieDH0Q',
+    userAttendance: '1YAgpHWw40rfCs7out7Fqry3ZKWakYIiivlUR7sgV7t0',
     accountsBalance: '1YVh1lq7XgI6RpnUpjtAcBMYyT7udA9fZuIvBnHu49zY',
     configSpreadsheet: '1lAZM_7DSeyRv8qoOrQA0O0WpIh7Sy95d3kKpMZ55pkM',
     invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg',

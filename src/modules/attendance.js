@@ -114,8 +114,57 @@ function updateUsers() {
   });
 }
 
+function takeAttendance () {
+  const sheet = SpreadsheetApp.openById(config.ids.userAttendance)
+    .getSheetByName(config.sheetNames.userAttendance);
+
+  const startRow = config.positioning.attendance.users.startRow
+  const startCol = config.positioning.attendance.users.startCol
+
+  const userIndexes = sheet.getRange(startRow, startCol, 1, sheet.getMaxColumns() - startCol + 1)
+    .getValues()[0]
+    .reduce((userIndexes, userKey, index) => ({
+      ...userIndexes,
+      [userKey]: index
+    }), {})
+
+  const events = sheet.getRange(2, 1, sheet.getMaxRows() - 1, 2)
+    .getValues()
+    .map(eventRow => ({
+      date: eventRow[0],
+      type: eventRow[1],
+    }))
+
+  const attendance = sheet.getRange(2, 3, sheet.getMaxRows() - 1, sheet.getMaxColumns() - startCol + 1)
+    .getValues()
+
+  const attendanceStatusMap = utils.getValues(config.ids.configSpreadsheet, config.sheetNames.attendanceStatus)
+    .reduce((attendanceStatus, row) => ({
+      ...attendanceStatus,
+      [row[0]]: true
+    }), {});
+
+  const summary = users.getUsers()
+    .map(user => {
+      const userIndex = userIndexes[user.key]
+      return {
+        user,
+        eventsAttendance: events.map((event, eventIndex) => {
+          const userAttendance = (userIndex || userIndex === 0) && attendance[eventIndex][userIndex]
+          return {
+            event,
+            attendance: userAttendance && attendanceStatusMap[userAttendance] && userAttendance || null
+          }
+        })
+      }
+    })
+
+  Browser.msgBox(JSON.stringify(summary));
+}
+
 module.exports = {
   checkAttendanceList: checkAttendanceList,
   checkAttendanceTypes: checkAttendanceTypes,
-  updateUsers: updateUsers
+  updateUsers: updateUsers,
+  takeAttendance: takeAttendance
 };

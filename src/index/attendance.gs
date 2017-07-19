@@ -2,6 +2,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu(malecon.Texts.attendance.menu.main)
     .addItem(malecon.Texts.attendance.menu.validate, 'checkAttendance')
+    .addItem(malecon.Texts.attendance.menu.takeAttendance, 'takeAttendance')
     .addToUi();
 }
 
@@ -44,4 +45,8 @@ function checkAttendance () {
   malecon.Attendance.updateUsers();
   malecon.Attendance.checkAttendanceTypes();
   malecon.Attendance.checkAttendanceList();
+}
+
+function takeAttendance() {
+  malecon.Attendance.takeAttendance();
 }
