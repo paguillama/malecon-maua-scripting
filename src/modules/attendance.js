@@ -1,6 +1,7 @@
 const config = require('./config')
 const utils = require('./utils')
 const users = require('./users')
+const texts = require('./texts')
 
 function checkAttendanceList(range){
   const startRow = config.positioning.attendance.status.startRow,
@@ -128,38 +129,128 @@ function takeAttendance () {
       [userKey]: index
     }), {})
 
-  const events = sheet.getRange(2, 1, sheet.getMaxRows() - 1, 2)
+  const eventsData = sheet.getRange(2, 1, sheet.getMaxRows() - 1, 2)
     .getValues()
-    .map(eventRow => ({
-      date: eventRow[0],
-      type: eventRow[1],
+    .map((eventRow, index) => ({
+      event: {
+        date: eventRow[0],
+        type: eventRow[1],
+      },
+      index
     }))
 
   const attendance = sheet.getRange(2, 3, sheet.getMaxRows() - 1, sheet.getMaxColumns() - startCol + 1)
     .getValues()
 
   const attendanceStatusMap = utils.getValues(config.ids.configSpreadsheet, config.sheetNames.attendanceStatus)
-    .reduce((attendanceStatus, row) => ({
+    .reduce((attendanceStatus, [key]) => ({
       ...attendanceStatus,
-      [row[0]]: true
+      [key]: key,
     }), {});
 
-  const summary = users.getUsers()
+  users.getUsers()
     .map(user => {
       const userIndex = userIndexes[user.key]
-      return {
-        user,
-        eventsAttendance: events.map((event, eventIndex) => {
-          const userAttendance = (userIndex || userIndex === 0) && attendance[eventIndex][userIndex]
+      const eventsAttendance = eventsData
+        .filter(eventData => {
+          const eventDate = Date.parse(eventData.event.date)
+          return !eventDate || (eventDate >= Date.parse(user.startDate) && (user.endDate === '-' || eventDate <= Date.parse(user.endDate)))
+        })
+        .map(eventData => {
+          const userAttendance = (userIndex || userIndex === 0) && attendance[eventData.index][userIndex]
           return {
-            event,
-            attendance: userAttendance && attendanceStatusMap[userAttendance] && userAttendance || null
+            event: eventData.event,
+            attendance: userAttendance && attendanceStatusMap[userAttendance] || null,
           }
         })
+
+      const attendancesByStatus = eventsAttendance.reduce((attendancesByStatus, eventAttendance) => {
+        // TODO - 'noAttendance' namespacing (collisions)
+        const newValue = (attendancesByStatus[eventAttendance.attendance || 'noAttendance'] || 0) + 1
+        attendancesByStatus[eventAttendance.attendance || 'noAttendance'] = newValue
+        return attendancesByStatus
+      }, {})
+
+      return {
+        user,
+        eventsAttendance,
+        attendancesByStatus
       }
     })
+    .forEach(userData => {
+      const spreadsheetName = 'Nº ' + userData.user.number + ' ' + userData.user.name;
+      const spreadsheetId = utils.getOrCreateSpreadsheet(spreadsheetName, config.ids.userBalancesFolder, config.sheetNames.attendance);
+      const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
 
-  Browser.msgBox(JSON.stringify(summary));
+      let sheet = spreadsheet.getSheetByName(config.sheetNames.attendance);
+      if (sheet) {
+        sheet.clear();
+        sheet.activate();
+      } else {
+        sheet = spreadsheet.insertSheet(config.sheetNames.attendance, spreadsheet.getNumSheets());
+      }
+      const sheetTitle = userData.user.name;
+      const headerLabels = texts.balance.headers;
+      const headers = [
+        [sheetTitle, '', '', ''],
+        [headerLabels.userNumber, userData.user.number, headerLabels.userDocument, userData.user.document || '-'],
+        // TODO - bug with start date (substracting 1 day [probably timezone])
+        [headerLabels.admissionDate, userData.user.startDate, headerLabels.phone, userData.user.phone || '-']
+      ];
+
+      let row = 1;
+      sheet.getRange(row, 1, headers.length, headers[0].length)
+        .setValues(headers)
+        .setBorder(true, true, true, true, true, true);
+
+      sheet.getRange(row, 1, 1, headers[0].length)
+        .mergeAcross()
+        .setHorizontalAlignment('center');
+
+      sheet.getRange(row + 2, 1)
+        .setNumberFormat(config.formatting.date);
+
+      row += headers.length + 1;
+
+      const attendanceTable = userData.eventsAttendance.map(eventAttendance => [
+        eventAttendance.event.date,
+        eventAttendance.event.type,
+        eventAttendance.attendance || '-',
+      ])
+
+      let col = 1;
+      if (attendanceTable.length) {
+        sheet.getRange(row, 1, attendanceTable.length + 1, attendanceTable[0].length)
+          .setValues([['Fecha', 'Evento', 'Asistencia']].concat(attendanceTable))
+          .setBorder(true, true, true, true, true, true);
+
+        col = attendanceTable[0].length + 2
+      }
+
+      const percentagesTable = Object.keys(attendanceStatusMap)
+        .map(attendanceStatus => {
+          return ({
+            attendanceStatus,
+            percentage: userData.eventsAttendance.length ? Math.floor(((userData.attendancesByStatus[attendanceStatus] || 0) * 100 / userData.eventsAttendance.length) * 100) / 100 : 0,
+          })
+        })
+        .concat(!userData.attendancesByStatus.noAttendance ? [] : [{
+          attendanceStatus: '-',
+          percentage: Math.floor((userData.attendancesByStatus.noAttendance * 100 / userData.eventsAttendance.length) * 100) / 100,
+        }])
+        .sort((a, b) => a.percentage > b.percentage && -1 ||
+          a.percentage < b.percentage && 1 ||
+          a.attendanceStatus > b.attendanceStatus && -1 ||
+          a.attendanceStatus < b.attendanceStatus && 1 || 0
+        )
+        .map(attendanceData => ([
+          attendanceData.attendanceStatus,
+          attendanceData.percentage,
+        ]))
+      sheet.getRange(row, col, percentagesTable.length + 1, percentagesTable[0].length)
+        .setValues([['Asistencia', '%']].concat(percentagesTable))
+        .setBorder(true, true, true, true, true, true);
+    })
 }
 
 module.exports = {

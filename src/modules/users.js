@@ -1,4 +1,5 @@
 var config = require('./config')
+var utils = require('./utils')
 
 function getUsersMap() {
   return getUsers().reduce(function (usersMap, user) {
@@ -8,23 +9,46 @@ function getUsersMap() {
 }
 
 function getUsers() {
-  var spreadsheet = SpreadsheetApp.openById(config.ids.usersSpreadsheet);
-  var sheet = spreadsheet.getSheetByName(config.sheetNames.users);
+  const spreadsheet = SpreadsheetApp.openById(config.ids.usersSpreadsheet);
+  const sheet = spreadsheet.getSheetByName(config.sheetNames.users);
 
-  var row = sheet.getRange(2, 1, sheet.getMaxRows(), sheet.getMaxColumns());
-  var rowValues = row.getValues();
+  const rows = sheet
+    .getRange(2, 1, sheet.getMaxRows(), sheet.getMaxColumns())
+    .getValues();
 
-  return rowValues.reduce(function (users, rowValue) {
-    var key = rowValue[2];
+  const {
+    keyColumnLabel,
+    nameColumnLabel,
+    numberColumnLabel,
+    documentColumnLabel,
+    phoneColumnLabel,
+    startDateColumnLabel,
+    endDateColumnLabel,
+    activeColumnLabel,
+  } = config.positioning.users
+
+  const getColumnIndex = columnLabel => utils.getPosition(sheet, columnLabel).startCol - 1
+  const keyColumnIndex = getColumnIndex(keyColumnLabel);
+  const numberColumnIndex = getColumnIndex(numberColumnLabel);
+  const nameColumnIndex = getColumnIndex(nameColumnLabel);
+  const documentColumnIndex = getColumnIndex(documentColumnLabel);
+  const phoneColumnIndex = getColumnIndex(phoneColumnLabel);
+  const startDateColumnIndex = getColumnIndex(startDateColumnLabel);
+  const endDateColumnIndex = getColumnIndex(endDateColumnLabel);
+  const activeColumnIndex = getColumnIndex(activeColumnLabel);
+
+  return rows.reduce(function (users, row) {
+    var key = row[keyColumnIndex];
     if (key) {
       users.push({
         key: key,
-        name: rowValue[1],
-        number: rowValue[0],
-        document: rowValue[3],
-        phone: rowValue[4],
-        startDate: rowValue[5],
-        active: rowValue[8]
+        name: row[nameColumnIndex],
+        number: row[numberColumnIndex],
+        document: row[documentColumnIndex],
+        phone: row[phoneColumnIndex],
+        startDate: row[startDateColumnIndex],
+        endDate: row[endDateColumnIndex],
+        active: row[activeColumnIndex]
       });
     }
     return users;

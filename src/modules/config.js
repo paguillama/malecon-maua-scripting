@@ -14,6 +14,7 @@ module.exports = {
     users: 'Lista',
     attendanceStatus: 'Estados de asistencias',
     attendanceTypes: 'Tipos de asistencias',
+    attendance: 'Asistencias',
     userAttendance: 'Asistencias de socios',
     invoicesTransactions: 'Comprobantes',
     debitsTransactions: 'Débitos',
@@ -78,7 +79,16 @@ module.exports = {
     },
     users: {
       startRow: 2,
-      keyColumnLabel: 'Key'
+      keyColumnLabel: 'Key',
+      numberColumnLabel: 'N°',
+      nameColumnLabel: 'Nombre',
+      documentColumnLabel: 'C.I.',
+      phoneColumnLabel: 'Tel',
+      typeColumnLabel: 'Dormitorios',
+      startDateColumnLabel: 'Fecha de ingreso',
+      endDateColumnLabel: 'Fecha de fin',
+      emailColumnLabel: 'Email',
+      activeColumnLabel: 'Activo'
     }
   },
   accounts: [{
