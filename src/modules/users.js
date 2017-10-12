@@ -24,6 +24,7 @@ function getUsers() {
     phoneColumnLabel,
     startDateColumnLabel,
     endDateColumnLabel,
+    typeColumnLabel,
     activeColumnLabel,
   } = config.positioning.users
 
@@ -35,6 +36,7 @@ function getUsers() {
   const phoneColumnIndex = getColumnIndex(phoneColumnLabel);
   const startDateColumnIndex = getColumnIndex(startDateColumnLabel);
   const endDateColumnIndex = getColumnIndex(endDateColumnLabel);
+  const typeColumnIndex = getColumnIndex(typeColumnLabel);
   const activeColumnIndex = getColumnIndex(activeColumnLabel);
 
   return rows.reduce(function (users, row) {
@@ -48,6 +50,7 @@ function getUsers() {
         phone: row[phoneColumnIndex],
         startDate: row[startDateColumnIndex],
         endDate: row[endDateColumnIndex],
+        type: row[typeColumnIndex],
         active: row[activeColumnIndex]
       });
     }

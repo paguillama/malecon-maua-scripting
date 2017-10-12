@@ -84,7 +84,7 @@ module.exports = {
       nameColumnLabel: 'Nombre',
       documentColumnLabel: 'C.I.',
       phoneColumnLabel: 'Tel',
-      typeColumnLabel: 'Dormitorios',
+      typeColumnLabel: 'Tipo de socio',
       startDateColumnLabel: 'Fecha de ingreso',
       endDateColumnLabel: 'Fecha de fin',
       emailColumnLabel: 'Email',

@@ -262,7 +262,7 @@ function createUsersSpreadsheets(usersMap) {
     addInvoicesToAccountCategoryMap(user.skippedInvoices, userData.accountCategoryMap);
     addInvoicesToCategoryMap(user.skippedInvoices, userData.categoryMap);
 
-    const monthsData = getUserMonthsData(monthlyCategories, user.userData.active, userData.categoryMap);
+    const monthsData = getUserMonthsData(monthlyCategories, user.userData, userData.categoryMap);
 
     let position = createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate);
     Object.keys(userData.accountCategoryMap).forEach(accountKey => {
@@ -345,14 +345,14 @@ function addInvoicesToCategoryMap(invoices, categoryMap) {
   });
 }
 
-function getUserMonthsData(monthlyCategories, active, userCategoryMap) {
+function getUserMonthsData(monthlyCategories, user, userCategoryMap) {
 
   return monthlyCategories.reduce(function (monthsData, category) {
-    const invoices = active && userCategoryMap[category.categoryData.key] || [];
+    const invoices = user.active && userCategoryMap[category.categoryData.key] || [];
     const sortedInvoices = invoices.concat().sort(sortByObjectDate);
 
     const categoryMonthsData = sortedInvoices.reduce(function (categoryMonthsData, invoice) {
-      const categoryValueOnInvoiceDate = getCategoryValueOnDate(invoice.date, category.monthlyValues);
+      const categoryValueOnInvoiceDate = getCategoryValueOnDate(invoice.date, category.monthlyValues, user.type);
       if (categoryValueOnInvoiceDate !== 0) {
         const accumulatedValue = categoryMonthsData.remainder + invoice.value;
 
@@ -379,16 +379,18 @@ function getUserMonthsData(monthlyCategories, active, userCategoryMap) {
   }, {})
 }
 
-function getCategoryValueOnDate(date, monthlyValues) {
+function getCategoryValueOnDate(date, monthlyValues, userType) {
   let value = 0;
 
   const parsedDate = Date.parse(date)
   for(let i = 0; i < monthlyValues.length; i++) {
-    if (Date.parse(monthlyValues[i].date) > parsedDate) {
-      break;
-    }
+    if (userType === monthlyValues[i].userType) {
+      if (Date.parse(monthlyValues[i].date) > parsedDate) {
+        break;
+      }
 
-    value = monthlyValues[i].value;
+      value = monthlyValues[i].value;
+    }
   }
 
   return value;
