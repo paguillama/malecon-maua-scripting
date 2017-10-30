@@ -34,7 +34,12 @@ function getAccountTransactions(account, accountsSpreadsheet) {
 
   const accountSheet = accountsSpreadsheet.getSheetByName(account.sheetName);
   const startRow = 2;
-  const range = accountSheet.getRange(startRow, 1, accountSheet.getMaxRows() - 1, accountSheet.getMaxColumns());
+  const maxRows = accountSheet.getMaxRows();
+  if (maxRows === startRow - 1) {
+    return [];
+  }
+
+  const range = accountSheet.getRange(startRow, 1, maxRows - 1, accountSheet.getMaxColumns());
   const values = range.getValues();
 
   const transactionsData = values.reduce((transactionsData, row, rowIndex) => {

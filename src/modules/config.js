@@ -71,6 +71,10 @@ module.exports = {
       BROU: {
         startRow: 2,
         reconcileColumnLabel: 'Conciliación'
+      },
+      Efectivo: {
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
       }
     },
     accounts: {
