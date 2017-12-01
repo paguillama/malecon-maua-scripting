@@ -8,8 +8,15 @@ function reconcile() {
     .filter(account => account.sheetName);
 
   const accountsSpreadsheet = SpreadsheetApp.openById(config.ids.accountsBalance);
+  const descriptionsToFilterAccounts = utils.getObject(config.sheetNames.descriptionsToFilterAccounts)
+    .reduce((descriptionsToFilterAccounts, description) => {
+      const accountDescriptions = descriptionsToFilterAccounts[description.account] || (descriptionsToFilterAccounts[description.account] = {});
+      accountDescriptions[description.key] = true;
+      return descriptionsToFilterAccounts;
+    }, {});
+
   const transactions = accounts.reduce((transactions, account) => {
-    const accountTransactions = getAccountTransactions(account, accountsSpreadsheet);
+    const accountTransactions = getAccountTransactions(account, accountsSpreadsheet, descriptionsToFilterAccounts[account.key] || {});
 
     transactions[account.key] = accountTransactions.reduce((accountTransactionsMap, transaction) => {
       accountTransactionsMap[transaction.number] = transaction;
@@ -27,7 +34,7 @@ function reconcile() {
   createUsersSpreadsheets(usersMap);
 }
 
-function getAccountTransactions(account, accountsSpreadsheet) {
+function getAccountTransactions(account, accountsSpreadsheet, descriptionsToFilter) {
   if (!account.sheetName) {
     return [];
   }
@@ -42,34 +49,57 @@ function getAccountTransactions(account, accountsSpreadsheet) {
   const range = accountSheet.getRange(startRow, 1, maxRows - 1, accountSheet.getMaxColumns());
   const values = range.getValues();
 
-  const transactionsData = values.reduce((transactionsData, row, rowIndex) => {
-    if ((row[account.positiveValueIndex] || row[account.negativeValueIndex]) &&
-      row[account.dateIndex] &&
-      row[account.numberIndex]) {
+  const transactionsData = values.reduce((transactionsData, row, relativeRowIndex) => {
+    const rowIndex = relativeRowIndex + startRow;
+    if (row[account.descriptionIndex] && descriptionsToFilter[row[account.descriptionIndex]]) {
+      transactionsData.skippedRows.push(rowIndex);
+      return transactionsData;
+    }
 
+    const missing = [];
+    if (!(row[account.positiveValueIndex] || row[account.negativeValueIndex])) {
+      missing.push('Valores positivos o negativos');
+    }
+    if (!row[account.dateIndex]) {
+      missing.push('Fecha');
+    }
+    if (!row[account.numberIndex]) {
+      missing.push('Número de comprobante');
+    }
+    if (!missing.length) {
       transactionsData.transactions.push({
         value: (row[account.positiveValueIndex] || 0) - (row[account.negativeValueIndex] || 0),
         date: row[account.dateIndex],
         number: row[account.numberIndex],
-        rowIndex: rowIndex + startRow,
+        rowIndex,
         invoices: []
       });
-
     } else {
-      transactionsData.invalidRows.push(rowIndex + startRow);
+      transactionsData.invalidRows.push({
+        rowIndex,
+        missing
+      });
     }
 
     return transactionsData;
   }, {
     transactions: [],
-    invalidRows: []
+    invalidRows: [],
+    skippedRows: []
   });
 
-  if (transactionsData.invalidRows.length) {
-    const reconcileCol = utils.getPosition(accountSheet, config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
-    transactionsData.invalidRows.forEach(rowIndex => accountSheet
+  const reconcileCol = utils.getPosition(accountSheet, config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
+  if (transactionsData.skippedRows.length) {
+    transactionsData.skippedRows.forEach(rowIndex => accountSheet
       .getRange(rowIndex, reconcileCol, 1, 1)
-      .setValues([['Sin conciliar']])
+      .setValues([['Fila salteada']])
+      .setBackground(config.colors.info));
+  }
+
+  if (transactionsData.invalidRows.length) {
+    transactionsData.invalidRows.forEach(({ rowIndex, missing }) => accountSheet
+      .getRange(rowIndex, reconcileCol, 1, 1)
+      .setValues([['Campos inválidos: ' + missing.join(', ')]])
       .setBackground(config.colors.error));
   }
 
@@ -96,13 +126,26 @@ function getInvoices(sheetname) {
   const accountTransactionNumberIndex = getPosition(invoiceLabels.accountTransactionNumberColumnLabel);
 
   const invoiceData = range.getValues().reduce((invoiceData, row, rowIndex) => {
-    if (row[dateIndex] &&
-      row[userIndex] &&
-      row[accountIndex] &&
-      row[categoryIndex] &&
-      row[valueIndex] &&
-      row[skipReconcileIndex]) {
-
+    const missing = [];
+    if (!row[dateIndex]) {
+      missing.push(invoiceLabels.dateColumnLabel);
+    }
+    if (!row[userIndex]) {
+      missing.push(invoiceLabels.userColumnLabel);
+    }
+    if (!row[accountIndex]) {
+      missing.push(invoiceLabels.accountColumnLabel);
+    }
+    if (!row[categoryIndex]) {
+      missing.push(invoiceLabels.categoriesColumnLabel);
+    }
+    if (!row[valueIndex]) {
+      missing.push(invoiceLabels.valueColumnLabel);
+    }
+    if (!row[skipReconcileIndex]) {
+      missing.push(invoiceLabels.skipReconcileColumnLabel);
+    }
+    if (!missing.length) {
       invoiceData.invoices.push({
         date: row[dateIndex],
         user: row[userIndex],
@@ -117,9 +160,11 @@ function getInvoices(sheetname) {
         rowIndex: rowIndex + startRow,
         sheet: sheet
       });
-
     } else {
-      invoiceData.invalidRows.push(rowIndex + startRow);
+      invoiceData.invalidRows.push({
+        rowIndex: rowIndex + startRow,
+        missing
+      });
     }
 
     return invoiceData;
@@ -130,9 +175,9 @@ function getInvoices(sheetname) {
 
   const reconcileCol = utils.getPosition(sheet, invoiceLabels.reconcileColumnLabel, startRow).startCol;
   range.setBackground(config.colors.neutral);
-  invoiceData.invalidRows.forEach(rowIndex => sheet
+  invoiceData.invalidRows.forEach(({ rowIndex, missing }) => sheet
     .getRange(rowIndex, reconcileCol, 1, 1)
-    .setValues([['Sin conciliar']])
+    .setValues([['Campos inválidos: ' + missing.join(', ')]])
     .setBackground(config.colors.error));
 
   return invoiceData.invoices;
@@ -166,8 +211,8 @@ function reconcileTransactions(transactions, invoices, accounts) {
       return addError('Cuenta desconocida', invoice, user, false, invoiceReconcileCol);
     }
 
-    const transaction = invoice.number && accountTransactions[invoice.number] ||
-      invoice.accountTransactionNumber && accountTransactions[invoice.accountTransactionNumber];
+    const transaction = invoice.accountTransactionNumber && accountTransactions[invoice.accountTransactionNumber] ||
+      invoice.number && accountTransactions[invoice.number];
     if (!transaction) {
       return addError('Sin conciliar', invoice, user, invoice.skipReconcile, invoiceReconcileCol);
     }
@@ -208,8 +253,8 @@ function reconcileTransactions(transactions, invoices, accounts) {
       } else if (invoiceData.users.length > 1) {
         message = 'Múltiples socios para una misma transacción: ' + transaction.users.join(', ');
         transaction.reconciled = false;
-      } else if (transaction.value !== invoiceData.sum) {
-        message = 'Valor no coincide';
+      } else if (!isEqual(transaction.value, invoiceData.sum)) {
+        message = 'Monto no coincide';
         transaction.reconciled = false;
       }
 
@@ -226,6 +271,12 @@ function reconcileTransactions(transactions, invoices, accounts) {
   });
 
   return usersMap;
+}
+
+function isEqual(a, b) {
+  // Floating point sucks for this things, so
+  // if the diff is really small they are equal
+  return Math.abs(a - b) < 0.00001;
 }
 
 function createUsersSpreadsheets(usersMap) {

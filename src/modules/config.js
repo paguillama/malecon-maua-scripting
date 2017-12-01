@@ -19,7 +19,8 @@ module.exports = {
     invoicesTransactions: 'Comprobantes',
     debitsTransactions: 'Débitos',
     transactionCategories: 'Categorías de transacciones',
-    accounts: 'Cuentas'
+    accounts: 'Cuentas',
+    descriptionsToFilterAccounts: 'Descripciones a filtrar en cuentas',
   },
   transactionCategoryTypes: {
     monthlyFromBeginning: 'Mensual desde inicio',
@@ -32,6 +33,7 @@ module.exports = {
   colors: {
     error: '#f4c7c3',
     neutral: 'white',
+    info: '#c9daf8',
     success: '#b7e1cd'
   },
   positioning: {
