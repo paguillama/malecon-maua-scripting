@@ -1,0 +1,1 @@
+module.exports = (message, data) => Browser.msgBox(message + (data && (' // ' + JSON.stringify(data)) || ''));

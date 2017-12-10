@@ -3,11 +3,16 @@ function onOpen() {
     .createMenu(malecon.Texts.invoice.menu.main)
     .addItem(malecon.Texts.invoice.menu.validate, 'checkInvoice')
     .addItem(malecon.Texts.invoice.menu.reconcile, 'reconcile')
+    .addItem(malecon.Texts.invoice.menu.reconcileAndUpdate, 'reconcileAndUpdate')
     .addToUi();
 }
 
 function reconcile () {
-  malecon.Reconciliation.reconcile();
+  malecon.Reconciliation.reconcile(false);
+}
+
+function reconcileAndUpdate () {
+  malecon.Reconciliation.reconcile(true);
 }
 
 function onEdit(event) {

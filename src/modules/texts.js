@@ -9,7 +9,8 @@ module.exports = {
   balance: {
     menu: {
       main: 'Malecón',
-      reconcile: 'Conciliar'
+      reconcile: 'Conciliar',
+      reconcileAndUpdate: 'Conciliar y actualizar planillas de socios',
     },
     headers: {
       userNumber: 'Socio Nº',
@@ -32,7 +33,8 @@ module.exports = {
     menu: {
       main: 'Malecón',
       validate: 'Validar',
-      reconcile: 'Conciliar'
+      reconcile: 'Conciliar',
+      reconcileAndUpdate: 'Conciliar y actualizar planillas de socios'
     }
   },
   invoiceMigration: {

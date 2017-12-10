@@ -2,11 +2,23 @@ const texts = require('./texts')
 const users = require('./users')
 const config = require('./config')
 const utils = require('./utils')
+const log = require('./log')
 
-function reconcile() {
+function reconcile(shouldCreateUsersSpreadsheets) {
   const accounts = utils.getObject(config.sheetNames.accounts)
     .filter(account => account.sheetName);
 
+  const transactions = getAccountsTransactions(accounts);
+
+  const invoices = getInvoices(config.sheetNames.invoicesTransactions);
+  const debits = getInvoices(config.sheetNames.debitsTransactions);
+
+  const usersMap = reconcileTransactions(transactions, invoices.concat(debits), accounts);
+
+  shouldCreateUsersSpreadsheets && createUsersSpreadsheets(usersMap);
+}
+
+function getAccountsTransactions(accounts) {
   const accountsSpreadsheet = SpreadsheetApp.openById(config.ids.accountsBalance);
   const descriptionsToFilterAccounts = utils.getObject(config.sheetNames.descriptionsToFilterAccounts)
     .reduce((descriptionsToFilterAccounts, description) => {
@@ -15,23 +27,23 @@ function reconcile() {
       return descriptionsToFilterAccounts;
     }, {});
 
-  const transactions = accounts.reduce((transactions, account) => {
+  return accounts.reduce((transactions, account) => {
     const accountTransactions = getAccountTransactions(account, accountsSpreadsheet, descriptionsToFilterAccounts[account.key] || {});
 
     transactions[account.key] = accountTransactions.reduce((accountTransactionsMap, transaction) => {
-      accountTransactionsMap[transaction.number] = transaction;
+      const numberArray = accountTransactionsMap.number[transaction.number] || (accountTransactionsMap.number[transaction.number] = []);
+      numberArray.push(transaction);
+      if (transaction.id) {
+        accountTransactionsMap.id[transaction.id] = transaction;
+      }
       return accountTransactionsMap;
-    }, {});
+    }, {
+      number: {},
+      id: {},
+    });
 
     return transactions;
   }, {});
-
-  const invoices = getInvoices(config.sheetNames.invoicesTransactions);
-  const debits = getInvoices(config.sheetNames.debitsTransactions);
-
-  const usersMap = reconcileTransactions(transactions, invoices.concat(debits), accounts);
-
-  createUsersSpreadsheets(usersMap);
 }
 
 function getAccountTransactions(account, accountsSpreadsheet, descriptionsToFilter) {
@@ -63,14 +75,15 @@ function getAccountTransactions(account, accountsSpreadsheet, descriptionsToFilt
     if (!row[account.dateIndex]) {
       missing.push('Fecha');
     }
-    if (!row[account.numberIndex]) {
+    if (!row[account.numberIndex] && row[account.numberIndex] !== 0) {
       missing.push('Número de comprobante');
     }
     if (!missing.length) {
       transactionsData.transactions.push({
         value: (row[account.positiveValueIndex] || 0) - (row[account.negativeValueIndex] || 0),
         date: row[account.dateIndex],
-        number: row[account.numberIndex],
+        number: '' + row[account.numberIndex],
+        id: '' + row[account.id],
         rowIndex,
         invoices: []
       });
@@ -150,13 +163,13 @@ function getInvoices(sheetname) {
         date: row[dateIndex],
         user: row[userIndex],
         account: row[accountIndex],
-        number: row[numberIndex],
+        number: '' + row[numberIndex],
         series: row[seriesIndex],
         category: row[categoryIndex],
         value: row[valueIndex],
         amount: row[amountIndex],
         skipReconcile: row[skipReconcileIndex] === 'Sí',
-        accountTransactionNumber: row[accountTransactionNumberIndex],
+        accountTransactionNumber: '' + row[accountTransactionNumberIndex],
         rowIndex: rowIndex + startRow,
         sheet: sheet
       });
@@ -211,8 +224,22 @@ function reconcileTransactions(transactions, invoices, accounts) {
       return addError('Cuenta desconocida', invoice, user, false, invoiceReconcileCol);
     }
 
-    const transaction = invoice.accountTransactionNumber && accountTransactions[invoice.accountTransactionNumber] ||
-      invoice.number && accountTransactions[invoice.number];
+    let transaction;
+    transaction = invoice.accountTransactionNumber && accountTransactions.id[invoice.accountTransactionNumber] ||
+      invoice.number && accountTransactions.id[invoice.number];
+
+    if (!transaction) {
+      const numberTransactions = invoice.accountTransactionNumber && accountTransactions.number[invoice.accountTransactionNumber] ||
+        invoice.number && accountTransactions.number[invoice.number];
+      if (numberTransactions) {
+        if (numberTransactions.length === 1) {
+          transaction = numberTransactions[0];
+        } else {
+          return addError('La cuenta tiene registros con el número duplicado', invoice, user, invoice.skipReconcile, invoiceReconcileCol);
+        }
+      }
+    }
+
     if (!transaction) {
       return addError('Sin conciliar', invoice, user, invoice.skipReconcile, invoiceReconcileCol);
     }
@@ -230,43 +257,48 @@ function reconcileTransactions(transactions, invoices, accounts) {
     const accountReconcileCol = utils.getPosition(accountSheet, config.positioning.accountBalance[account.key].reconcileColumnLabel).startCol;
 
     const accountTransactions = transactions[account.key];
-    Object.keys(accountTransactions).forEach(transactionKey => {
-      const transaction = accountTransactions[transactionKey];
-      const invoiceData = transaction.invoices.reduce((invoiceData, invoice) => {
-        invoiceData.sum += invoice.amount;
+    Object.keys(accountTransactions.number).forEach(transactionNumber => {
+      const transactionArray = accountTransactions.number[transactionNumber];
+      transactionArray.forEach(transaction => {
+        let message = 'Conciliado';
+        transaction.reconciled = true;
 
-        if (invoiceData.users.indexOf(invoice.user) === -1) {
-          invoiceData.users.push(invoice.user);
+        if (!transaction.id && transactionArray.length > 1) {
+          message = 'Número duplicado, por favor ingrese un identificador';
+          transaction.reconciled = false;
+        } else if (transaction.invoices.length === 0) {
+          message = 'Sin conciliar';
+          transaction.reconciled = false;
+        } else {
+          const invoiceData = transaction.invoices.reduce((invoiceData, invoice) => {
+            invoiceData.sum += invoice.amount;
+            invoiceData.users.indexOf(invoice.user) === -1 && invoiceData.users.push(invoice.user)
+
+            return invoiceData;
+          }, {
+            sum: 0,
+            users: []
+          });
+
+          if (invoiceData.users.length > 1) {
+            message = 'Múltiples socios para una misma transacción: ' + transaction.users.join(', ');
+            transaction.reconciled = false;
+          } else if (!isEqual(transaction.value, invoiceData.sum)) {
+            message = 'Monto no coincide';
+            transaction.reconciled = false;
+          }
         }
 
-        return invoiceData;
-      }, {
-        sum: 0,
-        users: []
-      });
-
-      let message = 'Conciliado';
-      transaction.reconciled = true;
-      if (transaction.invoices.length === 0) {
-        message = 'Sin conciliar';
-        transaction.reconciled = false;
-      } else if (invoiceData.users.length > 1) {
-        message = 'Múltiples socios para una misma transacción: ' + transaction.users.join(', ');
-        transaction.reconciled = false;
-      } else if (!isEqual(transaction.value, invoiceData.sum)) {
-        message = 'Monto no coincide';
-        transaction.reconciled = false;
-      }
-
-      const color = transaction.reconciled ? config.colors.neutral : config.colors.error;
-      accountSheet.getRange(transaction.rowIndex, accountReconcileCol, 1, 1)
-        .setValues([[message]])
-        .setBackground(color);
-      transaction.invoices.forEach(function (invoice) {
-        invoice.sheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
+        const color = transaction.reconciled ? config.colors.neutral : config.colors.error;
+        accountSheet.getRange(transaction.rowIndex, accountReconcileCol, 1, 1)
           .setValues([[message]])
           .setBackground(color);
-      });
+        transaction.invoices.forEach(function (invoice) {
+          invoice.sheet.getRange(invoice.rowIndex, invoiceReconcileCol, 1, 1)
+            .setValues([[message]])
+            .setBackground(color);
+        });
+      })
     });
   });
 
