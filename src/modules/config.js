@@ -28,7 +28,8 @@ module.exports = {
   },
   formatting: {
     date: 'yyy-mm-dd',
-    decimalNumber: '#,##0.00'
+    decimalNumber: '#,##0.00',
+    text: '@'
   },
   colors: {
     error: '#f4c7c3',

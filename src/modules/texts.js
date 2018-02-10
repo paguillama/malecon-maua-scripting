@@ -24,7 +24,8 @@ module.exports = {
         invoice: 'Recibo',
         value: 'Valor',
         balance: 'Saldo',
-        amount: 'Monto'
+        amount: 'Monto',
+        account: 'Cuenta'
       },
       noDataMessage: 'No hay transacciones para la cuenta seleccionada'
     }

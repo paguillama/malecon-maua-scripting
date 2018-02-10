@@ -123,7 +123,6 @@ function getInvoices(sheetname) {
   const spreadsheet = SpreadsheetApp.openById(config.ids.invoices);
   const sheet = spreadsheet.getSheetByName(sheetname);
   const startRow = config.positioning.invoice.startRow;
-  const range = sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
 
   const getPosition = label => utils.getPosition(sheet, label, startRow).startCol - 1;
   const invoiceLabels = config.positioning.invoice;
@@ -137,6 +136,11 @@ function getInvoices(sheetname) {
   const amountIndex = getPosition(invoiceLabels.amountColumnLabel);
   const skipReconcileIndex = getPosition(invoiceLabels.skipReconcileColumnLabel);
   const accountTransactionNumberIndex = getPosition(invoiceLabels.accountTransactionNumberColumnLabel);
+
+  sheet.getRange(2, numberIndex + 1, sheet.getMaxRows() - 1, 1)
+    .setNumberFormat(config.formatting.text);
+
+  const range = sheet.getRange(2, 1, sheet.getMaxRows() - 1, sheet.getMaxColumns());
 
   const invoiceData = range.getValues().reduce((invoiceData, row, rowIndex) => {
     const missing = [];
@@ -337,34 +341,25 @@ function createUsersSpreadsheets(usersMap) {
     const spreadsheetName = 'Nº ' + user.userData.number + ' ' + user.userData.name;
     const spreadsheetId = utils.getOrCreateSpreadsheet(spreadsheetName, config.ids.userBalancesFolder, config.sheetNames.balance);
 
-    const userData = user.transactions.reduce(function (userData, transaction) {
+    const categoryMap = user.transactions.reduce(function (categoryMap, transaction) {
       if (transaction.reconciled) {
-        addInvoicesToAccountCategoryMap(transaction.invoices, userData.accountCategoryMap);
-        addInvoicesToCategoryMap(transaction.invoices, userData.categoryMap);
+        addInvoicesToCategoryMap(transaction.invoices, categoryMap);
       }
-      return userData;
-    }, {
-      accountCategoryMap: {},
-      categoryMap: {}
-    });
-    addInvoicesToAccountCategoryMap(user.skippedInvoices, userData.accountCategoryMap);
-    addInvoicesToCategoryMap(user.skippedInvoices, userData.categoryMap);
+      return categoryMap;
+    }, {});
+    addInvoicesToCategoryMap(user.skippedInvoices, categoryMap);
 
-    const monthsData = getUserMonthsData(monthlyCategories, user.userData, userData.categoryMap);
+    const monthsData = getUserMonthsData(monthlyCategories, user.userData, categoryMap);
 
     let position = createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate);
-    Object.keys(userData.accountCategoryMap).forEach(accountKey => {
-      let accountCategories = userData.accountCategoryMap[accountKey];
-      Object.keys(accountCategories).forEach(categoryKey => {
-        const categoryInvoices = accountCategories[categoryKey];
-
-        const tablePosition = createTable(position, accountKey, categoryKey, categoryInvoices);
-        position = {
-          row: position.row,
-          col: tablePosition.col + 1,
-          sheet: position.sheet
-        }
-      });
+    Object.keys(categoryMap).forEach(categoryKey => {
+      let categoryInvoices = categoryMap[categoryKey];
+      const tablePosition = createTable(position, categoryKey, categoryInvoices);
+      position = {
+        row: position.row,
+        col: tablePosition.col + 1,
+        sheet: position.sheet
+      }
     });
   });
 }
@@ -404,22 +399,6 @@ function addError(message, invoice, user, skipInvoice, invoiceReconcileCol) {
       user.errorInvoices.push(invoice);
     }
   }
-}
-
-function addInvoicesToAccountCategoryMap(invoices, accountCategoryMap) {
-  invoices.forEach(invoice => {
-    let accountCategories = accountCategoryMap[invoice.account];
-    if (!accountCategories) {
-      accountCategories = accountCategoryMap[invoice.account] = {};
-    }
-
-    let categoryInvoices = accountCategories[invoice.category];
-    if (!categoryInvoices) {
-      categoryInvoices = accountCategories[invoice.category] = [];
-    }
-
-    categoryInvoices.push(invoice);
-  });
 }
 
 function addInvoicesToCategoryMap(invoices, categoryMap) {
@@ -489,7 +468,9 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
 
   let sheet = spreadsheet.getSheetByName(config.sheetNames.balance);
   if (sheet) {
-    sheet.clear();
+    const sheetMaxRows = sheet.getMaxRows();
+    sheet.insertRowsAfter(sheetMaxRows, 200);
+    sheet.deleteRows(1, sheetMaxRows);
     sheet.activate();
   } else {
     sheet = spreadsheet.insertSheet(config.sheetNames.balance, spreadsheet.getNumSheets());
@@ -555,19 +536,19 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
   };
 }
 
-function createTable(position, accountKey, categoryKey, categoryInvoices) {
+function createTable(position, name, invoices) {
   let row = position.row,
     col = position.col;
 
   const headerLabels = texts.balance.transactions.headers;
-  const transactionHeaders = [headerLabels.date, headerLabels.invoice, headerLabels.amount, headerLabels.value];
-  const extraHeaders = [headerLabels.balance];
-  const headers = transactionHeaders.concat(extraHeaders);
+  const dataHeaders = [headerLabels.date, headerLabels.account, headerLabels.invoice, headerLabels.amount, headerLabels.value];
+  const computedHeaders = [headerLabels.balance];
+  const headers = dataHeaders.concat(computedHeaders);
 
   const sheet = position.sheet;
 
   sheet.getRange(row, col, 1, 1)
-    .setValues([[accountKey + ' ' + categoryKey]]);
+    .setValues([[name]]);
   sheet.getRange(row, col, 1, headers.length)
     .mergeAcross()
     .setHorizontalAlignment('center');
@@ -577,37 +558,41 @@ function createTable(position, accountKey, categoryKey, categoryInvoices) {
     .setValues([headers]);
   row = row + 1;
 
-  categoryInvoices.sort(sortByObjectDate);
-  const transactionValues = categoryInvoices.map(transaction => ([
-    transaction.date,
-    transaction.number || transaction.accountTransactionNumber,
-    transaction.amount,
-    transaction.value
+  invoices.sort(sortByObjectDate);
+  const values = invoices.map((invoice, index) => ([
+    invoice.date,
+    invoice.account,
+    invoice.number || invoice.accountTransactionNumber,
+    invoice.amount,
+    invoice.value
   ]));
-  sheet.getRange(row, col, transactionValues.length, transactionHeaders.length)
-    .setValues(transactionValues);
+  sheet.getRange(row, col, values.length, dataHeaders.length)
+    .setValues(values);
 
-  sheet.getRange(row, col + transactionHeaders.length)
+  sheet.getRange(row, col + dataHeaders.length)
     .setFormulasR1C1([['=R[0]C[-1]']]);
 
-  if (transactionValues.length > 1) {
-    const formulas = transactionValues.slice(1).map(function () {
+  if (values.length > 1) {
+    const formulas = values.slice(1).map(function () {
       return ['=R[-1]C[0] + R[0]C[-1]'];
     });
-    sheet.getRange(row + 1, col + transactionHeaders.length, transactionValues.length - 1, 1)
+    sheet.getRange(row + 1, col + dataHeaders.length, values.length - 1, 1)
       .setFormulasR1C1(formulas);
   }
 
-  sheet.getRange(row, col, transactionValues.length, 1)
+  sheet.getRange(row, col, values.length, 1)
     .setNumberFormat(config.formatting.date);
 
-  sheet.getRange(row, col + 1, transactionValues.length, 1)
-    .setNumberFormat('0');
+  sheet.getRange(row, col + 1, values.length, 1)
+    .setNumberFormat(config.formatting.text);
 
-  sheet.getRange(row, col + 2, transactionValues.length, 3)
+  sheet.getRange(row, col + 2, values.length, 1)
+    .setNumberFormat(config.formatting.text);
+
+  sheet.getRange(row, col + 3, values.length, 3)
     .setNumberFormat(config.formatting.decimalNumber);
 
-  row = row + transactionValues.length;
+  row = row + values.length;
 
   col = col + headers.length;
   sheet.getRange(position.row, position.col, row - position.row, col - position.col)
