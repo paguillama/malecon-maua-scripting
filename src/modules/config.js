@@ -66,7 +66,8 @@ module.exports = {
       amountColumnLabel: 'Monto',
       reconcileColumnLabel: 'Conciliación',
       skipReconcileColumnLabel: 'Evadir concicliación',
-      accountTransactionNumberColumnLabel: 'Comprobante'
+      accountTransactionNumberColumnLabel: 'Comprobante',
+      comments: 'Observación',
     },
     accountBalance: {
       BHU: {

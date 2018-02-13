@@ -136,6 +136,7 @@ function getInvoices(sheetname) {
   const amountIndex = getPosition(invoiceLabels.amountColumnLabel);
   const skipReconcileIndex = getPosition(invoiceLabels.skipReconcileColumnLabel);
   const accountTransactionNumberIndex = getPosition(invoiceLabels.accountTransactionNumberColumnLabel);
+  const commentsIndex = getPosition(invoiceLabels.comments);
 
   sheet.getRange(2, numberIndex + 1, sheet.getMaxRows() - 1, 1)
     .setNumberFormat(config.formatting.text);
@@ -174,6 +175,7 @@ function getInvoices(sheetname) {
         amount: row[amountIndex],
         skipReconcile: row[skipReconcileIndex] === 'Sí',
         accountTransactionNumber: '' + row[accountTransactionNumberIndex],
+        comments: '' + row[commentsIndex],
         rowIndex: rowIndex + startRow,
         sheet: sheet
       });
@@ -579,7 +581,7 @@ function createTable(position, name, invoices, manyCategories) {
     .concat(manyCategories ? invoice.category.key : [])
     .concat([
       invoice.account,
-      invoice.number || invoice.accountTransactionNumber,
+      invoice.number || invoice.accountTransactionNumber || invoice.comments,
       invoice.amount,
       invoice.value
     ])));
