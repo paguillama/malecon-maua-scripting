@@ -29,13 +29,15 @@ module.exports = {
   formatting: {
     date: 'yyy-mm-dd',
     decimalNumber: '#,##0.00',
-    text: '@'
+    text: '@',
+    month: 'mm/yyy'
   },
   colors: {
     error: '#f4c7c3',
     neutral: 'white',
     info: '#c9daf8',
-    success: '#b7e1cd'
+    success: '#b7e1cd',
+    headers: '#b6d7a8'
   },
   positioning: {
     attendance: {

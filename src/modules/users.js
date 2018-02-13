@@ -48,8 +48,8 @@ function getUsers() {
         number: row[numberColumnIndex],
         document: row[documentColumnIndex],
         phone: row[phoneColumnIndex],
-        startDate: row[startDateColumnIndex],
-        endDate: row[endDateColumnIndex],
+        startDate: new Date(row[startDateColumnIndex]).getTime(),
+        endDate: row[endDateColumnIndex] && new Date(row[endDateColumnIndex]).getTime() || null,
         type: row[typeColumnIndex],
         active: row[activeColumnIndex]
       });

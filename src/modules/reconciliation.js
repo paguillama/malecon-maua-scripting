@@ -310,31 +310,44 @@ function reconcileTransactions(transactions, invoices, accounts) {
 }
 
 function isEqual(a, b) {
+  // TODO - improve
   // Floating point sucks for this things, so
   // if the diff is really small they are equal
   return Math.abs(a - b) < 0.00001;
 }
 
+const monthlyCategoriesFilter = category => category.type === config.transactionCategoryTypes.monthlyFromBeginning || category.type === config.transactionCategoryTypes.monthlyFromAdmission;
+
+const getCategoryTypeValueChanges = category => utils.getObject(category.key, {
+  spreadsheetId: config.ids.invoiceCategoryMonthlyValues
+}).sort(sortByObjectDate)
+  .map(valueChange => ({
+    ...valueChange,
+    date: new Date(valueChange.date).getTime()
+  }))
+  .reduce((typeMonthlyChanges, valueChange) => ({
+    ...typeMonthlyChanges,
+    [valueChange.userType]: (typeMonthlyChanges[valueChange.userType] || []).concat(valueChange)
+  }), {})
+
 function createUsersSpreadsheets(usersMap) {
+  const categoriesData = utils.getObject(config.sheetNames.transactionCategories)
+    .reduce((categoriesData, category) => {
+      if (monthlyCategoriesFilter(category)) {
+        categoriesData.monthly.push({
+          category,
+          typeMonthlyChanges: getCategoryTypeValueChanges(category)
+        });
+      } else {
+        categoriesData.other.push(category);
+      }
+      return categoriesData;
+    }, {
+      monthly: [],
+      other: [],
+    });
 
-  const categories = utils.getObject(config.sheetNames.transactionCategories);
-
-  const { monthlyFromBeginning, monthlyFromAdmission } = config.transactionCategoryTypes;
-  const monthlyCategories = categories
-    .filter(category => category.type === monthlyFromBeginning || category.type === monthlyFromAdmission)
-    .map(category => ({
-      categoryData: category,
-      monthlyValues: utils.getObject(category.key, {
-        spreadsheetId: config.ids.invoiceCategoryMonthlyValues
-      }).concat().sort(sortByObjectDate)
-    }));
-
-  const categoriesTypeHash = categories.reduce((categoriesTypeHash, category) => {
-    categoriesTypeHash[category.key] = category.type
-    return categoriesTypeHash;
-  }, {});
-
-  const organizationStartDate = new Date(config.organizationStartDate);
+  const organizationStartDate = new Date(config.organizationStartDate).getTime();
 
   Object.keys(usersMap).forEach(key => {
     const user = usersMap[key];
@@ -349,42 +362,40 @@ function createUsersSpreadsheets(usersMap) {
     }, {});
     addInvoicesToCategoryMap(user.skippedInvoices, categoryMap);
 
-    const monthsData = getUserMonthsData(monthlyCategories, user.userData, categoryMap);
+    const monthsData = getUserMonthsData(categoriesData.monthly, user.userData, categoryMap, organizationStartDate);
 
-    let position = createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate);
-    Object.keys(categoryMap).forEach(categoryKey => {
-      let categoryInvoices = categoryMap[categoryKey];
-      const tablePosition = createTable(position, categoryKey, categoryInvoices);
+    let position = createSheet(user, spreadsheetId, monthsData);
+
+    categoriesData.monthly.forEach(({ category }) => {
+      const categoryInvoices = categoryMap[category.key];
+
+      if (!categoryInvoices || !categoryInvoices.length) {
+        return position;
+      }
+      const tablePosition = createTable(position, category.key, categoryInvoices, false);
       position = {
-        row: position.row,
+        ...position,
         col: tablePosition.col + 1,
-        sheet: position.sheet
       }
     });
+
+    const otherInvoices = categoriesData.other.reduce((invoices, category) =>
+      invoices.concat((categoryMap[category.key] || []).map(categoryTransaction => ({
+        ...categoryTransaction,
+        category,
+      }))), []);
+    if (otherInvoices.length) {
+      const tablePosition = createTable(position, 'Otros', otherInvoices, true);
+      position = {
+        ...position,
+        col: tablePosition.col + 1,
+      }
+    }
   });
 }
 
 function sortByObjectDate(a, b) {
   return Date.parse(a.date) < Date.parse(b.date) ? -1 : 1;
-}
-
-function getMonth(months, categoryType, userStartDate, organizationStartDate) {
-
-  if (categoryType === config.transactionCategoryTypes.monthlyFromAdmission) {
-    return addMonthsToDateAndFormat(months, userStartDate)
-  } else {
-    return addMonthsToDateAndFormat(months, organizationStartDate)
-  }
-}
-
-function addMonthsToDateAndFormat(months, date) {
-  const newDate = new Date(date.getTime());
-
-  // -1 because the start month should be paid too
-  const monthsToAdd = months - 1;
-  
-  newDate.setUTCMonth(newDate.getUTCMonth() + monthsToAdd);
-  return (newDate.getUTCMonth() + 1) + '/' + newDate.getUTCFullYear()
 }
 
 function addError(message, invoice, user, skipInvoice, invoiceReconcileCol) {
@@ -412,58 +423,38 @@ function addInvoicesToCategoryMap(invoices, categoryMap) {
   });
 }
 
-function getUserMonthsData(monthlyCategories, user, userCategoryMap) {
+const getUserMonthsData = (monthlyCategoriesData, user, userCategoryMap, organizationStartDate) =>
+  monthlyCategoriesData.map((monthlyCategoryData) => {
+    const startDate = monthlyCategoryData.category.type === config.transactionCategoryTypes.monthlyFromBeginning ? organizationStartDate : user.startDate
+    const typeMonthlyChanges = monthlyCategoryData.typeMonthlyChanges[user.type]
+    const getTypeMonthlyChange = date => typeMonthlyChanges.reduce((dateTypeMonthlyChange, typeMonthlyChange) => typeMonthlyChange.date <= date && typeMonthlyChange.date > dateTypeMonthlyChange.date ? typeMonthlyChange : dateTypeMonthlyChange, typeMonthlyChanges[0])
+    const invoices = userCategoryMap[monthlyCategoryData.category.key] || []
+    const total = invoices.reduce((total, invoice) => total + invoice.value, 0)
 
-  return monthlyCategories.reduce(function (monthsData, category) {
-    const invoices = user.active && userCategoryMap[category.categoryData.key] || [];
-    const sortedInvoices = invoices.concat().sort(sortByObjectDate);
 
-    const categoryMonthsData = sortedInvoices.reduce(function (categoryMonthsData, invoice) {
-      const categoryValueOnInvoiceDate = getCategoryValueOnDate(invoice.date, category.monthlyValues, user.type);
-      if (categoryValueOnInvoiceDate !== 0) {
-        const accumulatedValue = categoryMonthsData.remainder + invoice.value;
+    let remainder = total;
+    const lastPaidMonth = new Date(startDate)
+    lastPaidMonth.setMonth(lastPaidMonth.getMonth() - 1);
 
-        if (accumulatedValue >= categoryValueOnInvoiceDate) {
-          categoryMonthsData.months += Math.floor(accumulatedValue / categoryValueOnInvoiceDate);
-          categoryMonthsData.remainder = accumulatedValue % categoryValueOnInvoiceDate;
-        } else {
-          categoryMonthsData.remainder = accumulatedValue;
-        }
-      }
-
-      categoryMonthsData.total += invoice.value;
-
-      return categoryMonthsData;
-    }, {
-      months: 0,
-      remainder: 0,
-      total: 0
-    });
-
-    monthsData[category.categoryData.key] = categoryMonthsData;
-
-    return monthsData;
-  }, {})
-}
-
-function getCategoryValueOnDate(date, monthlyValues, userType) {
-  let value = 0;
-
-  const parsedDate = Date.parse(date)
-  for(let i = 0; i < monthlyValues.length; i++) {
-    if (userType === monthlyValues[i].userType) {
-      if (Date.parse(monthlyValues[i].date) > parsedDate) {
-        break;
-      }
-
-      value = monthlyValues[i].value;
+    let monthValue = getTypeMonthlyChange(lastPaidMonth.getTime()).value;
+    // TODO - improve floating point issue
+    while (remainder + 0.00001 > monthValue) {
+      lastPaidMonth.setMonth(lastPaidMonth.getMonth() + 1);
+      remainder -= monthValue
+      monthValue = getTypeMonthlyChange(lastPaidMonth.getTime()).value;
     }
-  }
 
-  return value;
-}
+    remainder = Math.max(remainder, 0)
 
-function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organizationStartDate) {
+    return {
+      key: monthlyCategoryData.category.key,
+      total,
+      lastPaidMonth,
+      remainder,
+    };
+  });
+
+function createSheet(user, spreadsheetId, monthsData) {
   const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
 
   let sheet = spreadsheet.getSheetByName(config.sheetNames.balance);
@@ -481,7 +472,7 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
     [sheetTitle, '', '', ''],
     [headerLabels.userNumber, user.userData.number, headerLabels.userDocument, user.userData.document || '-'],
     // TODO - bug with start date (substracting 1 day [probably timezone])
-    [headerLabels.admissionDate, user.userData.startDate, headerLabels.phone, user.userData.phone || '-']
+    [headerLabels.admissionDate, new Date(user.userData.startDate), headerLabels.phone, user.userData.phone || '-']
   ];
 
   let row = 1;
@@ -491,7 +482,9 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
 
   sheet.getRange(row, 1, 1, headers[0].length)
     .mergeAcross()
-    .setHorizontalAlignment('center');
+    .setHorizontalAlignment('center')
+    .setBackground(config.colors.headers)
+    .setFontWeight('bold');
 
   sheet.getRange(row + 2, 1)
     .setNumberFormat(config.formatting.date);
@@ -502,25 +495,40 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
     const userStartDate = new Date(user.userData.startDate);
     userStartDate.setUTCDate(1)
 
-    const monthRows = Object.keys(monthsData)
-      .map(function (key) {
-        const item = monthsData[key]
-        return [
-          key,
-          item.total,
-          getMonth(item.months, categoriesTypeHash[key], userStartDate, organizationStartDate),
-          item.remainder
-        ]
-      })
+    const monthRows = monthsData
+      .map(monthData => [
+        monthData.key,
+        monthData.total,
+        monthData.total - monthData.remainder,
+        monthData.lastPaidMonth,
+        monthData.remainder
+      ])
 
-    const monthsTable = [
-      ['Resumen por categorías', '', '', ''],
-      ['Categoría', 'Valor', 'Último mes pago', 'Remanente']
-    ].concat(monthRows)
+    const monthsHeaders = [
+      ['Resumen por categorías', '', '', '', ''],
+      ['Categoría', 'Total', 'Total pago', 'Último mes pago', 'Remanente']
+    ];
+    const monthsTable = monthsHeaders.concat(monthRows)
+
+    sheet.getRange(row, 1, monthsHeaders.length, monthsTable[0].length)
+      .setBackground(config.colors.headers)
+      .setFontWeight('bold');
 
     sheet.getRange(row, 1, monthsTable.length, monthsTable[0].length)
       .setValues(monthsTable)
       .setBorder(true, true, true, true, true, true);
+
+    sheet.getRange(row + monthsHeaders.length, 2, monthRows.length, 1)
+      .setNumberFormat(config.formatting.decimalNumber);
+
+    sheet.getRange(row + monthsHeaders.length, 3, monthRows.length, 1)
+      .setNumberFormat(config.formatting.decimalNumber);
+
+    sheet.getRange(row + monthsHeaders.length, 4, monthRows.length, 1)
+      .setNumberFormat(config.formatting.month);
+
+    sheet.getRange(row + monthsHeaders.length, 5, monthRows.length, 1)
+      .setNumberFormat(config.formatting.decimalNumber);
 
     sheet.getRange(row, 1, 1, monthsTable[0].length)
       .mergeAcross()
@@ -536,13 +544,15 @@ function createSheet(user, spreadsheetId, monthsData, categoriesTypeHash, organi
   };
 }
 
-function createTable(position, name, invoices) {
+function createTable(position, name, invoices, manyCategories) {
   let row = position.row,
     col = position.col;
 
   const headerLabels = texts.balance.transactions.headers;
-  const dataHeaders = [headerLabels.date, headerLabels.account, headerLabels.invoice, headerLabels.amount, headerLabels.value];
-  const computedHeaders = [headerLabels.balance];
+  const dataHeaders = [headerLabels.date]
+    .concat(manyCategories ? headerLabels.category : [])
+    .concat([headerLabels.account, headerLabels.invoice, headerLabels.amount, headerLabels.value]);
+  const computedHeaders = manyCategories ? [] : [headerLabels.balance];
   const headers = dataHeaders.concat(computedHeaders);
 
   const sheet = position.sheet;
@@ -551,45 +561,59 @@ function createTable(position, name, invoices) {
     .setValues([[name]]);
   sheet.getRange(row, col, 1, headers.length)
     .mergeAcross()
-    .setHorizontalAlignment('center');
+    .setHorizontalAlignment('center')
+    .setBackground(config.colors.headers)
+    .setFontWeight('bold');
   row = row + 1;
 
   sheet.getRange(row, col, 1, headers.length)
-    .setValues([headers]);
+    .setValues([headers])
+    .setBackground(config.colors.headers)
+    .setFontWeight('bold');
   row = row + 1;
 
   invoices.sort(sortByObjectDate);
   const values = invoices.map((invoice, index) => ([
     invoice.date,
-    invoice.account,
-    invoice.number || invoice.accountTransactionNumber,
-    invoice.amount,
-    invoice.value
-  ]));
+  ]
+    .concat(manyCategories ? invoice.category.key : [])
+    .concat([
+      invoice.account,
+      invoice.number || invoice.accountTransactionNumber,
+      invoice.amount,
+      invoice.value
+    ])));
   sheet.getRange(row, col, values.length, dataHeaders.length)
     .setValues(values);
 
-  sheet.getRange(row, col + dataHeaders.length)
-    .setFormulasR1C1([['=R[0]C[-1]']]);
+  if (computedHeaders.length) {
+    sheet.getRange(row, col + dataHeaders.length)
+      .setFormulasR1C1([['=R[0]C[-1]']]);
 
-  if (values.length > 1) {
-    const formulas = values.slice(1).map(function () {
-      return ['=R[-1]C[0] + R[0]C[-1]'];
-    });
-    sheet.getRange(row + 1, col + dataHeaders.length, values.length - 1, 1)
-      .setFormulasR1C1(formulas);
+    if (values.length > 1) {
+      const formulas = values.slice(1).map(() => ['=R[-1]C[0] + R[0]C[-1]']);
+      sheet.getRange(row + 1, col + dataHeaders.length, values.length - 1, 1)
+        .setFormulasR1C1(formulas);
+    }
   }
+
+  const categoryShift = manyCategories ? 1 : 0;
 
   sheet.getRange(row, col, values.length, 1)
     .setNumberFormat(config.formatting.date);
 
-  sheet.getRange(row, col + 1, values.length, 1)
+  if (manyCategories) {
+    sheet.getRange(row, col + 1, values.length, 1)
+      .setNumberFormat(config.formatting.text);
+  }
+
+  sheet.getRange(row, col + categoryShift + 1, values.length, 1)
     .setNumberFormat(config.formatting.text);
 
-  sheet.getRange(row, col + 2, values.length, 1)
+  sheet.getRange(row, col + categoryShift + 2, values.length, 1)
     .setNumberFormat(config.formatting.text);
 
-  sheet.getRange(row, col + 3, values.length, 3)
+  sheet.getRange(row, col + categoryShift + 3, values.length, 3)
     .setNumberFormat(config.formatting.decimalNumber);
 
   row = row + values.length;

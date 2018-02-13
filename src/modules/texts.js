@@ -25,7 +25,8 @@ module.exports = {
         value: 'Valor',
         balance: 'Saldo',
         amount: 'Monto',
-        account: 'Cuenta'
+        account: 'Cuenta',
+        category: 'Categoría',
       },
       noDataMessage: 'No hay transacciones para la cuenta seleccionada'
     }
