@@ -5,7 +5,7 @@ module.exports = {
     userAttendance: '1YAgpHWw40rfCs7out7Fqry3ZKWakYIiivlUR7sgV7t0',
     accountsBalance: '1YVh1lq7XgI6RpnUpjtAcBMYyT7udA9fZuIvBnHu49zY',
     configSpreadsheet: '1lAZM_7DSeyRv8qoOrQA0O0WpIh7Sy95d3kKpMZ55pkM',
-    invoices: '1DYSFGhBrNikHILmF4rPEdWqUfFC7CMppf4XnHLeXfgg',
+    invoices: '128MTT1SmQaJqyI-ODJtnR5hryKMIL3cGmuzAU3PkBzg',
     invoiceCategoryMonthlyValues: '1YbAZMu4YQeUn7s4r9_AQnoBJxnTHgarI8s8Z988YiL0'
   },
   organizationStartDate: '2009-01-01T03:00:00.000Z',
