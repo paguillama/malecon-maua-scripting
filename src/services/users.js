@@ -18,7 +18,8 @@ function getUsers() {
 
   const {
     keyColumnLabel,
-    nameColumnLabel,
+    firstNameColumnLabel,
+    lastNameColumnLabel,
     numberColumnLabel,
     documentColumnLabel,
     phoneColumnLabel,
@@ -26,39 +27,51 @@ function getUsers() {
     endDateColumnLabel,
     typeColumnLabel,
     activeColumnLabel,
+    emailColumnLabel,
   } = config.positioning.users
 
   const getColumnIndex = columnLabel => utils.getPosition(sheet, columnLabel).startCol - 1
   const keyColumnIndex = getColumnIndex(keyColumnLabel);
   const numberColumnIndex = getColumnIndex(numberColumnLabel);
-  const nameColumnIndex = getColumnIndex(nameColumnLabel);
+  const firstNameColumnIndex = getColumnIndex(firstNameColumnLabel);
+  const lastNameColumnIndex = getColumnIndex(lastNameColumnLabel);
   const documentColumnIndex = getColumnIndex(documentColumnLabel);
   const phoneColumnIndex = getColumnIndex(phoneColumnLabel);
   const startDateColumnIndex = getColumnIndex(startDateColumnLabel);
   const endDateColumnIndex = getColumnIndex(endDateColumnLabel);
   const typeColumnIndex = getColumnIndex(typeColumnLabel);
   const activeColumnIndex = getColumnIndex(activeColumnLabel);
+  const emailColumnIndex = getColumnIndex(emailColumnLabel);
 
   return rows.reduce(function (users, row) {
-    var key = row[keyColumnIndex];
+    const key = row[keyColumnIndex];
     if (key) {
+      const firstName = row[firstNameColumnIndex];
+      const lastName = row[lastNameColumnIndex];
+      const name = `${firstName} ${lastName}`;
       users.push({
         key: key,
-        name: row[nameColumnIndex],
+        name,
+        firstName,
+        lastName,
         number: row[numberColumnIndex],
         document: row[documentColumnIndex],
         phone: row[phoneColumnIndex],
         startDate: new Date(row[startDateColumnIndex]).getTime(),
         endDate: row[endDateColumnIndex] && new Date(row[endDateColumnIndex]).getTime() || null,
         type: row[typeColumnIndex],
-        active: row[activeColumnIndex]
+        active: row[activeColumnIndex],
+        email: row[emailColumnIndex],
       });
     }
     return users;
   }, []);
 }
 
+const getSpreadsheetName = user => `Nº ${user.number} ${user.name}`;
+
 module.exports = {
   getUsersMap: getUsersMap,
-  getUsers: getUsers
+  getUsers: getUsers,
+  getSpreadsheetName,
 }

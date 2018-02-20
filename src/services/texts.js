@@ -36,7 +36,8 @@ module.exports = {
       main: 'Malecón',
       validate: 'Validar',
       reconcile: 'Conciliar',
-      reconcileAndUpdate: 'Conciliar y actualizar planillas de socios'
+      reconcileAndUpdate: 'Conciliar y actualizar planillas de socios',
+      reconcileUpdateAndSendEmail: 'Conciliar y enviar por mail las planillas de socios actualizadas',
     }
   },
   invoiceMigration: {

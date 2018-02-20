@@ -351,10 +351,11 @@ function createUsersSpreadsheets(usersMap) {
 
   const organizationStartDate = new Date(config.organizationStartDate).getTime();
 
+  const getOrCreateSpreadsheet = utils.getOrCreateSpreadsheet(config.ids.userBalancesFolder)
   Object.keys(usersMap).forEach(key => {
     const user = usersMap[key];
-    const spreadsheetName = 'Nº ' + user.userData.number + ' ' + user.userData.name;
-    const spreadsheetId = utils.getOrCreateSpreadsheet(spreadsheetName, config.ids.userBalancesFolder, config.sheetNames.balance);
+    const spreadsheetName = users.getSpreadsheetName(user.userData);
+    const spreadsheetId = getOrCreateSpreadsheet(spreadsheetName, config.sheetNames.balance);
 
     const categoryMap = user.transactions.reduce(function (categoryMap, transaction) {
       if (transaction.reconciled) {
@@ -377,7 +378,7 @@ function createUsersSpreadsheets(usersMap) {
       const tablePosition = createTable(position, category.key, categoryInvoices, false);
       position = {
         ...position,
-        col: tablePosition.col + 1,
+        row: tablePosition.row + 1,
       }
     });
 
@@ -540,9 +541,9 @@ function createSheet(user, spreadsheetId, monthsData) {
   }
 
   return {
-    row: row,
+    row,
     col: 1,
-    sheet: sheet
+    sheet,
   };
 }
 

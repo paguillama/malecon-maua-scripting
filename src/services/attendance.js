@@ -148,6 +148,7 @@ function takeAttendance () {
       [key]: key,
     }), {});
 
+  const getOrCreateSpreadsheet = utils.getOrCreateSpreadsheet(config.ids.userBalancesFolder);
   users.getUsers()
     .map(user => {
       const userIndex = userIndexes[user.key]
@@ -179,7 +180,7 @@ function takeAttendance () {
     })
     .forEach(userData => {
       const spreadsheetName = 'Nº ' + userData.user.number + ' ' + userData.user.name;
-      const spreadsheetId = utils.getOrCreateSpreadsheet(spreadsheetName, config.ids.userBalancesFolder, config.sheetNames.attendance);
+      const spreadsheetId = getOrCreateSpreadsheet(spreadsheetName, config.sheetNames.attendance);
       const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
 
       let sheet = spreadsheet.getSheetByName(config.sheetNames.attendance);

@@ -5,10 +5,11 @@
 // so we have to use ES6 modules to export our modules to GAS, and CommonJS
 // on the rest of the code because of the "default" keyword issue mentioned above :(
 
-export const Reconciliation = require('./modules/reconciliation')
-export const Attendance = require('./modules/attendance')
-export const Texts = require('./modules/texts')
-export const Invoice = require('./modules/invoice')
-export const Config = require('./modules/config')
-export const Utils = require('./modules/utils')
-export const InvoiceMigration = require('./modules/invoice-migration')
+export const Reconciliation = require('./services/reconciliation')
+export const Attendance = require('./services/attendance')
+export const Texts = require('./services/texts')
+export const Invoice = require('./services/invoice')
+export const Config = require('./services/config')
+export const Utils = require('./services/utils')
+export const Mail = require('./services/mail')
+export const InvoiceMigration = require('./services/invoice-migration')

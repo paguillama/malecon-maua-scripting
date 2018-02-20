@@ -1,5 +1,6 @@
 module.exports = {
   ids: {
+    documentsFolder: '0B-8lg-RJkLm3SElWYlVnMkxfU28',
     userBalancesFolder: '0B-8lg-RJkLm3YmFlRGJSZi1rNm8',
     usersSpreadsheet: '1-PkcLTxb8NCK3ufhLFDRlyaAV6mEv2npioQP1ieDH0Q',
     userAttendance: '1YAgpHWw40rfCs7out7Fqry3ZKWakYIiivlUR7sgV7t0',
@@ -91,7 +92,8 @@ module.exports = {
       startRow: 2,
       keyColumnLabel: 'Key',
       numberColumnLabel: 'N°',
-      nameColumnLabel: 'Nombre',
+      firstNameColumnLabel: 'Nombre',
+      lastNameColumnLabel: 'Apellido',
       documentColumnLabel: 'C.I.',
       phoneColumnLabel: 'Tel',
       typeColumnLabel: 'Tipo de socio',

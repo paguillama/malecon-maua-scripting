@@ -4,7 +4,13 @@ function onOpen() {
     .addItem(malecon.Texts.invoice.menu.validate, 'checkInvoice')
     .addItem(malecon.Texts.invoice.menu.reconcile, 'reconcile')
     .addItem(malecon.Texts.invoice.menu.reconcileAndUpdate, 'reconcileAndUpdate')
+    .addItem(malecon.Texts.invoice.menu.reconcileUpdateAndSendEmail, 'sendBalancesEmail')
     .addToUi();
+}
+
+function sendBalancesEmail () {
+  malecon.Reconciliation.reconcile(true);
+  malecon.Mail.sendBalancesMails();
 }
 
 function reconcile () {
