@@ -9,7 +9,6 @@ module.exports = {
     invoices: '128MTT1SmQaJqyI-ODJtnR5hryKMIL3cGmuzAU3PkBzg',
     invoiceCategoryMonthlyValues: '1YbAZMu4YQeUn7s4r9_AQnoBJxnTHgarI8s8Z988YiL0'
   },
-  organizationStartDate: '2009-01-01T03:00:00.000Z',
   sheetNames: {
     balance: 'Balance',
     users: 'Lista',
@@ -38,7 +37,7 @@ module.exports = {
     neutral: 'white',
     info: '#c9daf8',
     success: '#b7e1cd',
-    headers: '#b6d7a8'
+    headers: '#FFD500'
   },
   positioning: {
     attendance: {
@@ -76,6 +75,10 @@ module.exports = {
         reconcileColumnLabel: 'Conciliación'
       },
       BROU: {
+        startRow: 2,
+        reconcileColumnLabel: 'Conciliación'
+      },
+      'BROU CC': {
         startRow: 2,
         reconcileColumnLabel: 'Conciliación'
       },

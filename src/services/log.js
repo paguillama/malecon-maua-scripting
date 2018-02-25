@@ -1,1 +1,1 @@
-module.exports = (message, data) => Browser.msgBox(message + (data && (' // ' + JSON.stringify(data)) || ''));
+module.exports = (message, data) => Browser.msgBox(message + (typeof data !== undefined && (' // ' + JSON.stringify(data)) || ''));

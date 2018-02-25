@@ -325,7 +325,7 @@ const getCategoryTypeValueChanges = category => utils.getObject(category.key, {
 }).sort(sortByObjectDate)
   .map(valueChange => ({
     ...valueChange,
-    date: new Date(valueChange.date).getTime()
+    date: Date.UTC(valueChange.date.getFullYear(), valueChange.date.getMonth())
   }))
   .reduce((typeMonthlyChanges, valueChange) => ({
     ...typeMonthlyChanges,
@@ -349,8 +349,6 @@ function createUsersSpreadsheets(usersMap) {
       other: [],
     });
 
-  const organizationStartDate = new Date(config.organizationStartDate).getTime();
-
   const getOrCreateSpreadsheet = utils.getOrCreateSpreadsheet(config.ids.userBalancesFolder)
   Object.keys(usersMap).forEach(key => {
     const user = usersMap[key];
@@ -365,7 +363,7 @@ function createUsersSpreadsheets(usersMap) {
     }, {});
     addInvoicesToCategoryMap(user.skippedInvoices, categoryMap);
 
-    const monthsData = getUserMonthsData(categoriesData.monthly, user.userData, categoryMap, organizationStartDate);
+    const monthsData = getUserMonthsData(categoriesData.monthly, user.userData, categoryMap);
 
     let position = createSheet(user, spreadsheetId, monthsData);
 
@@ -426,34 +424,34 @@ function addInvoicesToCategoryMap(invoices, categoryMap) {
   });
 }
 
-const getUserMonthsData = (monthlyCategoriesData, user, userCategoryMap, organizationStartDate) =>
+const getDateMonth = date => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth()))
+const getNextMonth = date => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1));
+
+const getUserMonthsData = (monthlyCategoriesData, user, userCategoryMap) =>
   monthlyCategoriesData.map((monthlyCategoryData) => {
-    const startDate = monthlyCategoryData.category.type === config.transactionCategoryTypes.monthlyFromBeginning ? organizationStartDate : user.startDate
+    const startDate = monthlyCategoryData.category.type === config.transactionCategoryTypes.monthlyFromBeginning ? monthlyCategoryData.category.startDate.getTime() : user.startDate
     const typeMonthlyChanges = monthlyCategoryData.typeMonthlyChanges[user.type]
     const getTypeMonthlyChange = date => typeMonthlyChanges.reduce((dateTypeMonthlyChange, typeMonthlyChange) => typeMonthlyChange.date <= date && typeMonthlyChange.date > dateTypeMonthlyChange.date ? typeMonthlyChange : dateTypeMonthlyChange, typeMonthlyChanges[0])
     const invoices = userCategoryMap[monthlyCategoryData.category.key] || []
     const total = invoices.reduce((total, invoice) => total + invoice.value, 0)
 
 
-    let remainder = total;
-    const lastPaidMonth = new Date(startDate)
-    lastPaidMonth.setMonth(lastPaidMonth.getMonth() - 1);
+    const lastPaidMonth = getDateMonth(new Date(startDate))
+    lastPaidMonth.setUTCMonth(lastPaidMonth.getUTCMonth() - 1);
+    let paid = 0;
+    let monthValue = getTypeMonthlyChange(getNextMonth(lastPaidMonth).getTime()).value;
 
-    let monthValue = getTypeMonthlyChange(lastPaidMonth.getTime()).value;
-    // TODO - improve floating point issue
-    while (remainder + 0.00001 > monthValue) {
-      lastPaidMonth.setMonth(lastPaidMonth.getMonth() + 1);
-      remainder -= monthValue
-      monthValue = getTypeMonthlyChange(lastPaidMonth.getTime()).value;
+    while (paid + monthValue <= total) {
+      lastPaidMonth.setUTCMonth(lastPaidMonth.getUTCMonth() + 1);
+      paid += monthValue
+      monthValue = getTypeMonthlyChange(getNextMonth(lastPaidMonth).getTime()).value;
     }
-
-    remainder = Math.max(remainder, 0)
 
     return {
       key: monthlyCategoryData.category.key,
       total,
+      paid,
       lastPaidMonth,
-      remainder,
     };
   });
 
@@ -502,9 +500,9 @@ function createSheet(user, spreadsheetId, monthsData) {
       .map(monthData => [
         monthData.key,
         monthData.total,
-        monthData.total - monthData.remainder,
-        monthData.lastPaidMonth,
-        monthData.remainder
+        monthData.paid,
+        `${('0' + (monthData.lastPaidMonth.getUTCMonth() + 1)).slice(-2)}/${monthData.lastPaidMonth.getUTCFullYear()}`,
+        monthData.total - monthData.paid
       ])
 
     const monthsHeaders = [
