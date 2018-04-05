@@ -350,7 +350,7 @@ function createUsersSpreadsheets(usersMap) {
     });
 
   const getOrCreateSpreadsheet = utils.getOrCreateSpreadsheet(config.ids.userBalancesFolder)
-  Object.keys(usersMap).forEach(key => {
+  const usersSummaryData = Object.keys(usersMap).reduce((usersSummaryData, key) => {
     const user = usersMap[key];
     const spreadsheetName = users.getSpreadsheetName(user.userData);
     const spreadsheetId = getOrCreateSpreadsheet(spreadsheetName, config.sheetNames.balance);
@@ -392,8 +392,77 @@ function createUsersSpreadsheets(usersMap) {
         col: tablePosition.col + 1,
       }
     }
-  });
+
+    return usersSummaryData.concat({
+      user: user.userData,
+      monthsData,
+    });
+  }, []);
+
+  createSummary(usersSummaryData, categoriesData, getOrCreateSpreadsheet);
 }
+
+const createSummary = (usersSummaryData, categoriesData, getOrCreateSpreadsheet) => {
+  const summarySheet = SpreadsheetApp.openById(getOrCreateSpreadsheet('Resumen', 'Resumen'))
+    .getSheetByName('Resumen');
+
+  const activeUsersSummaryData = usersSummaryData.filter(userSummaryData => userSummaryData.user.active);
+  summarySheet.getRange(1, 1, activeUsersSummaryData.length + 2, 2 + categoriesData.monthly.length * 3)
+    .setValues(
+      [['Socio', 'Dormitorios'].concat(categoriesData.monthly.reduce((array, { category }) => array.concat([
+        `${category.key}`,
+        '',
+        '',
+      ]), []))]
+        .concat([['', ''].concat(categoriesData.monthly.reduce((array, { category }) => array.concat([
+          `Total depositado`,
+          `Total pago`,
+          `Último mes pago`,
+        ]), []))])
+        .concat(activeUsersSummaryData
+          .sort((a, b) => a.user.number - b.user.number)
+          .map(userSummaryData => {
+            const monthsDataHash = userSummaryData.monthsData.reduce((hash, monthsData) => ({
+              ...hash,
+              [monthsData.key]: monthsData
+            }), {});
+            return [
+              userSummaryData.user.key,
+              userSummaryData.user.type,
+            ].concat(categoriesData.monthly.reduce((array, { category }) => array.concat(monthsDataHash[category.key] ? [
+              monthsDataHash[category.key].total,
+              monthsDataHash[category.key].paid,
+              utils.getMonthLabelFromDate(monthsDataHash[category.key].lastPaidMonth),
+            ] : [
+              0,
+              0,
+              '-',
+            ]), []));
+          })))
+    .setBorder(true, true, true, true, true, true);
+
+  summarySheet.getRange(1, 1, 2, 1)
+    .merge()
+  summarySheet.getRange(1, 2, 2, 1)
+    .merge()
+  categoriesData.monthly.forEach((x, index) => summarySheet
+    .getRange(1, 3 + index * 3, 1, 3)
+    .merge())
+
+  summarySheet.getRange(1, 1, 2, 2 + categoriesData.monthly.length * 3)
+    .setBackground(config.colors.headers)
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setFontWeight('bold');
+
+  categoriesData.monthly.forEach((x, index) => summarySheet
+    .getRange(2, 3 + index * 3, activeUsersSummaryData.length, 2)
+    .setNumberFormat(config.formatting.decimalNumber))
+
+  categoriesData.monthly.forEach((x, index) => summarySheet
+    .getRange(2, 5 + index * 3, activeUsersSummaryData.length, 1)
+    .setNumberFormat(config.formatting.month))
+};
 
 function sortByObjectDate(a, b) {
   return Date.parse(a.date) < Date.parse(b.date) ? -1 : 1;
@@ -501,7 +570,7 @@ function createSheet(user, spreadsheetId, monthsData) {
         monthData.key,
         monthData.total,
         monthData.paid,
-        `${('0' + (monthData.lastPaidMonth.getUTCMonth() + 1)).slice(-2)}/${monthData.lastPaidMonth.getUTCFullYear()}`,
+        utils.getMonthLabelFromDate(monthData.lastPaidMonth),
         monthData.total - monthData.paid
       ])
 

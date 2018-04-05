@@ -117,6 +117,8 @@ function checkEventRangeColumnWithValues(eventRange, positioning, sheetname, han
   }
 }
 
+const getMonthLabelFromDate = date => `${('0' + (date.getUTCMonth() + 1)).slice(-2)}/${date.getUTCFullYear()}`;
+
 module.exports = {
   getOrCreateSpreadsheet,
   createValueInListValidation,
@@ -124,4 +126,5 @@ module.exports = {
   getPosition,
   getObject,
   checkEventRangeColumnWithValues,
+  getMonthLabelFromDate,
 };
